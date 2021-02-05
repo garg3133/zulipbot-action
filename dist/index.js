@@ -19,10 +19,10 @@ const run = async () => {
         throw new Error(`Couldn't find issue info in current context`);
     }
     const [owner, repo] = repository.full_name.split('/');
-
+    console.log(owner, repo);
     // Get issue body
-    const issue_comment = core.getInput('issue-comment', { required: true });
-
+    const body = core.getInput('body', { required: true });
+    console.log(body);
     // Create issue comment
 
     try {
@@ -30,9 +30,10 @@ const run = async () => {
             owner,
             repo,
             issue_number: issue.number,
-            issue_comment
+            body: body,
         });
     } catch (error) {
+        core.debug("errorrr");
         core.setFailed(error.message);
     }
 };
