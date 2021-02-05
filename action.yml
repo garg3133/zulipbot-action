@@ -10,7 +10,7 @@ inputs:
   repo-token:
     description: 'The GITHUB_TOKEN, needed to update the Issue'
     required: true
-  issue-comment:
+  body:
     description: 'Body of issue comment'
     required: true
 runs:

@@ -14,8 +14,8 @@ const run = async () => {
     const [owner, repo] = repository.full_name.split('/');
     console.log(owner, repo);
     // Get issue body
-    const issue_comment = core.getInput('issue-comment', { required: true });
-    console.log(issue_comment);
+    const body = core.getInput('body', { required: true });
+    console.log(body);
     // Create issue comment
 
     try {
@@ -23,10 +23,10 @@ const run = async () => {
             owner,
             repo,
             issue_number: issue.number,
-            body: issue_comment,
+            body: body,
         });
     } catch (error) {
-        console.log("errorrr");
+        core.debug("errorrr");
         core.setFailed(error.message);
     }
 };
