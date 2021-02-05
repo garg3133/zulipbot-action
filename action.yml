@@ -1,0 +1,18 @@
+# name: "Issue Claimer Action"
+# description: "Let the contributors claim the issues by commenting on the issue. Github action will assign the issue to the contributor."
+name: "Greetings"
+description: "Greet the contributor on opening an issue."
+author: 'garg3133'
+inputs:
+  # GITHUB_OAUTH_TOKEN:
+  #   description: "OAUTH token of the Github account to be used as the bot."
+  #   required: true
+  repo-token:
+    description: 'The GITHUB_TOKEN, needed to update the Issue'
+    required: true
+  issue-comment:
+    description: 'Body of issue comment'
+    required: true
+runs:
+  using: 'node12'
+  main: 'dist/index.js'
