@@ -10,9 +10,12 @@ inputs:
   repo-token:
     description: 'The GITHUB_TOKEN, needed to update the Issue'
     required: true
-  body:
+  issue-message:
     description: 'Body of issue comment'
-    required: true
+    required: false
+  pr-message:
+    description: 'Body of PR comment'
+    required: false
 runs:
   using: 'node12'
   main: 'dist/index.js'
