@@ -24,6 +24,7 @@ const run = async () => {
     }
 
     const context = github.context;
+
     // Do nothing if `action` is not `opened`.
     if (context.payload.action !== 'opened') {
         console.log('No issue or PR was opened, skipping');
@@ -61,26 +62,14 @@ const run = async () => {
     // Do nothing if its not their first contribution
     console.log('Checking if its the users first contribution');
 
-    let firstContribution = true;
-    // if (isIssue) {
-    //   firstContribution = await isFirstIssue(
-    //     client,
-    //     owner,
-    //     repo,
-    //     sender,
-    //     number
-    //   );
-    // } else {
-    //   firstContribution = await isFirstPull(
-    //     client,
-    //     owner,
-    //     repo,
-    //     sender,
-    //     number
-    //   );
-    // }
+    let firstContribution = false;
+    if (isIssue) {
+        firstContribution = await isFirstIssue(client, owner, repo, sender, number);
+    } else {
+        firstContribution = await isFirstPull( client, owner, repo, sender, number);
+    }
     if (!firstContribution) {
-      console.log('Not the users first contribution');
+      console.log('Not the user\'s first contribution');
       return;
     }
 
@@ -108,6 +97,60 @@ const run = async () => {
 };
 
 
+async function isFirstIssue(client, owner, repo, sender, curIssueNumber) {
+    const {status, data: issues} = await client.issues.listForRepo({
+      owner,
+      repo,
+      creator: sender,
+      state: 'all'
+    });
+  
+    if (status !== 200) {
+      throw new Error(`Received unexpected API status code ${status}`);
+    }
+  
+    if (issues.length === 0) {
+      return true;
+    }
+  
+    for (const issue of issues) {
+      if (issue.number < curIssueNumber && !issue.pull_request) {
+        return false;
+      }
+    }
+
+    return true;
+}
+
+// No way to filter pulls by creator
+async function isFirstPull(client, owner, repo, sender, curPullNumber, page = 1) {
+    // Provide console output if we loop for a while.
+    console.log(`Checking for first pull (at page ${page})`);
+    const {status, data: pulls} = await client.pulls.list({
+      owner,
+      repo,
+      per_page: 100,
+      page: page,
+      state: 'all'
+    });
+  
+    if (status !== 200) {
+      throw new Error(`Received unexpected API status code ${status}`);
+    }
+  
+    if (pulls.length === 0) {
+      return true;
+    }
+  
+    for (const pull of pulls) {
+      const login = pull.user.login;
+      if (login === sender && pull.number < curPullNumber) {
+        return false;
+      }
+    }
+
+    return await isFirstPull(client, owner, repo, sender, curPullNumber, page + 1);
+}
 
 
 // Run the script
