@@ -3,10 +3,12 @@ const github = require('@actions/github');
 
 const run = async () => {
     // Get octokit
-    const gitHubToken = core.getInput('repo-token', { required: true });
-    const client = github.getOctokit({
-      auth: gitHubToken
-    });
+    const token = core.getInput('token', { required: true });
+    const is_oauth_token = core.getInput('is-oauth-token');
+
+    const githubToken = is_oauth_token ? '' : token;
+    const oauthToken = is_oauth_token ? token : '';
+    const client = github.getOctokit(githubToken, {auth: oauthToken});
 
     // Get issue and pr message
     const issueMessage = core.getInput('issue-message');
@@ -57,12 +59,12 @@ const run = async () => {
     // Do nothing if its not their first contribution
     console.log('Checking if its the users first contribution');
 
-    let firstContribution = false;
-    if (isIssue) {
-        firstContribution = await isFirstIssue(client, owner, repo, sender, number);
-    } else {
-        firstContribution = await isFirstPull(client, owner, repo, sender, number);
-    }
+    let firstContribution = true;
+    // if (isIssue) {
+    //     firstContribution = await isFirstIssue(client, owner, repo, sender, number);
+    // } else {
+    //     firstContribution = await isFirstPull(client, owner, repo, sender, number);
+    // }
     if (!firstContribution) {
       console.log('Not the user\'s first contribution');
       return;

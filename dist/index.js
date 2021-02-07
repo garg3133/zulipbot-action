@@ -10,8 +10,12 @@ const github = __nccwpck_require__(331);
 
 const run = async () => {
     // Get octokit
-    const gitHubToken = core.getInput('token', { required: true });
-    const client = github.getOctokit('', {auth: gitHubToken});
+    const token = core.getInput('token', { required: true });
+    const is_oauth_token = core.getInput('is-oauth-token');
+
+    const githubToken = is_oauth_token ? '' : token;
+    const oauthToken = is_oauth_token ? token : '';
+    const client = github.getOctokit(githubToken, {auth: oauthToken});
 
     // Get issue and pr message
     const issueMessage = core.getInput('issue-message');
