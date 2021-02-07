@@ -10,8 +10,8 @@ const github = __nccwpck_require__(331);
 
 const run = async () => {
     // Get octokit
-    const gitHubToken = core.getInput('repo-token', { required: true });
-    const client = github.getOctokit(gitHubToken);
+    const gitHubToken = core.getInput('token', { required: true });
+    const client = github.getOctokit('', {auth: gitHubToken});
 
     // Get issue and pr message
     const issueMessage = core.getInput('issue-message');
@@ -62,12 +62,12 @@ const run = async () => {
     // Do nothing if its not their first contribution
     console.log('Checking if its the users first contribution');
 
-    let firstContribution = false;
-    if (isIssue) {
-        firstContribution = await isFirstIssue(client, owner, repo, sender, number);
-    } else {
-        firstContribution = await isFirstPull( client, owner, repo, sender, number);
-    }
+    let firstContribution = true;
+    // if (isIssue) {
+    //     firstContribution = await isFirstIssue(client, owner, repo, sender, number);
+    // } else {
+    //     firstContribution = await isFirstPull(client, owner, repo, sender, number);
+    // }
     if (!firstContribution) {
       console.log('Not the user\'s first contribution');
       return;

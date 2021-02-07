@@ -4,7 +4,9 @@ const github = require('@actions/github');
 const run = async () => {
     // Get octokit
     const gitHubToken = core.getInput('repo-token', { required: true });
-    const client = github.getOctokit(gitHubToken);
+    const client = github.getOctokit({
+      auth: gitHubToken
+    });
 
     // Get issue and pr message
     const issueMessage = core.getInput('issue-message');

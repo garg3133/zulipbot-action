@@ -7,9 +7,13 @@ inputs:
   # GITHUB_OAUTH_TOKEN:
   #   description: "OAUTH token of the Github account to be used as the bot."
   #   required: true
-  repo-token:
-    description: 'The GITHUB_TOKEN, needed to update the Issue'
+  token:
+    description: 'GITHUB_TOKEN of the repo or OAUTH token of the bot account.'
     required: true
+  is-oauth-token:
+    description: 'Is the token provided, an OAUTH token of the bot account? (Bot account should be a collaborator on the repo.)'
+    required: false
+    default: false
   issue-message:
     description: 'Body of issue comment'
     required: false
