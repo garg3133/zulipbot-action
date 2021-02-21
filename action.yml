@@ -1,0 +1,10 @@
+name: "Issue Claimer Action"
+description: "Let the contributors claim the issues by commenting on the issue. Github action will assign the issue to the contributor."
+author: 'garg3133'
+inputs:
+  token:
+    description: "Personal access token of the Github account to be used as the bot."
+    required: true
+runs:
+  using: 'node12'
+  main: 'dist/index.js'
