@@ -5816,10 +5816,10 @@ for (const file of commands) {
 const events = fs.readdirSync(__nccwpck_require__.ab + "events");
 for (const event of events) {
     if (!event.includes(".")) continue;
-    [event] = event.split(".");
+    const [eventName] = event.split(".");
     const data = __ncc_wildcard$1(event);
-    client.events.set(event, data.run.bind(client));
-    client.cfg.set(event, data.getConfig);
+    client.events.set(eventName, data.run.bind(client));
+    // client.cfg.set(eventName, data.getConfig);
 }
 
 module.exports = client;

@@ -22,10 +22,10 @@ for (const file of commands) {
 const events = fs.readdirSync(`${__dirname}/events`);
 for (const event of events) {
     if (!event.includes(".")) continue;
-    [event] = event.split(".");
+    const [eventName] = event.split(".");
     const data = require(`./events/${event}`);
-    client.events.set(event, data.run.bind(client));
-    client.cfg.set(event, data.getConfig);
+    client.events.set(eventName, data.run.bind(client));
+    // client.cfg.set(eventName, data.getConfig);
 }
 
 module.exports = client;
