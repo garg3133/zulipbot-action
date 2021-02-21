@@ -1,4 +1,8 @@
 exports.run = async function(payload, commenter, args) {
+    // Return if comment is made on a Pull Request.
+    // Comment out the following line if you want to use claim on PRs too.
+    if (payload.issue.pull_request) return;
+
     const repoName = payload.repository.name;
     const repoOwner = payload.repository.owner.login;
     const number = payload.issue.number;

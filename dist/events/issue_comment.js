@@ -6,9 +6,6 @@ module.exports =
 /***/ ((__unused_webpack_module, exports) => {
 
 exports.run = function(payload) {
-    // If event is fired in pull request.
-    if(payload.pull_request) return;
-
     const action = payload.action;
 
     if (action === "created") {
