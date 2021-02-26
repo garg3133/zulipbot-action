@@ -2,7 +2,144 @@ module.exports =
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 241:
+/***/ 206:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+function __ncc_wildcard$0 (arg) {
+  if (arg === "claim.js" || arg === "claim") return __nccwpck_require__(399);
+}
+const core = __nccwpck_require__(186);
+const github = __nccwpck_require__(438);
+const fs = __nccwpck_require__(747);
+
+const cfg = __nccwpck_require__(896);
+
+// Get octokit
+const token = core.getInput('token', { required: true });
+const client = github.getOctokit('', {auth: token});
+
+client.cfg = cfg;
+client.commands = new Map();
+
+const commands = fs.readdirSync(__nccwpck_require__.ab + "commands");
+for (const file of commands) {
+    const [fileName] = file.split(".");
+    const data = __ncc_wildcard$0(file);
+    client.commands.set(fileName, data);
+}
+
+module.exports = client;
+
+
+/***/ }),
+
+/***/ 399:
+/***/ ((__unused_webpack_module, exports) => {
+
+exports.run = async function(payload, commenter, args) {
+    // Return if comment is made on a Pull Request.
+    // Comment out the following line if you want to use claim on PRs too.
+    if (payload.issue.pull_request) return;
+
+    const repoName = payload.repository.name;
+    const repoOwner = payload.repository.owner.login;
+    const number = payload.issue.number;
+  
+    if (payload.issue.assignees.find(assignee => assignee.login === commenter)) {
+      const error = "**ERROR:** You have already claimed this issue.";
+      return this.issues.createComment({
+        owner: repoOwner, repo: repoName, issue_number: number, body: error
+      });
+    }
+
+    claim.apply(this, [commenter, number, repoOwner, repoName]);
+}
+
+async function claim(commenter, number, repoOwner, repoName) {
+    const response = await this.issues.addAssignees({
+      owner: repoOwner, repo: repoName, issue_number: number, assignees: [commenter]
+    });
+  
+    if (response.data.assignees.length) return;
+  
+    const error = "**ERROR:** Issue claiming failed (no assignee was added).";
+  
+    return this.issues.createComment({
+      owner: repoOwner, repo: repoName, issue_number: number, body: error
+    });
+}
+
+/***/ }),
+
+/***/ 896:
+/***/ ((__unused_webpack_module, exports) => {
+
+// const core = require('@actions/core');
+
+exports.botName = "github-actions"
+
+/***/ }),
+
+/***/ 338:
+/***/ ((__unused_webpack_module, __unused_webpack_exports, __nccwpck_require__) => {
+
+const client = __nccwpck_require__(206)
+const core = __nccwpck_require__(186);
+const github = __nccwpck_require__(438);
+
+const run = async () => {
+    // Get the bot's username
+    const {status, data: {login: botName}} = await client.users.getAuthenticated();
+    if (status !== 200) {
+        throw new Error(`Received unexpected API status code ${status} while looking for bot's username.`);
+    }
+    client.cfg.botName = botName;
+
+    const context = github.context;
+    if(context.eventName !== "issue_comment") return;
+
+    const payload = context.payload;
+    if(payload.action === "created") {
+        parse_comment(payload);
+    }
+};
+
+function parse_comment(payload) {
+    const data = payload.comment;
+    const commenter = data.user.login;
+    const body = data.body;
+    const username = client.cfg.botName;
+
+    if (commenter === username || !body) return;
+
+    const prefix = RegExp(`@${username} +(\\w+)( +(--\\w+|"[^"]+"))*`, "g");
+    const parsed = body.match(prefix);
+    if (!parsed) return;
+
+    parsed.forEach(command => {
+        const codeBlocks = [`\`\`\`\r\n${command}\r\n\`\`\``, `\`${command}\``];
+        if (codeBlocks.some(block => body.includes(block))) return;
+        const [, keyword] = command.replace(/\s+/, " ").split(" ");
+        const args = command.replace(/\s+/, " ").split(" ").slice(2).join(" ");
+        const file = client.commands.get(keyword);
+    
+        if (file) {
+            file.run.apply(client, [payload, commenter, args]);
+        }
+    });
+}
+
+
+// Run the script
+try {
+    run();
+} catch (error) {
+    core.setFailed(error.message);
+}
+
+/***/ }),
+
+/***/ 351:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -110,7 +247,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const command_1 = __nccwpck_require__(241);
+const command_1 = __nccwpck_require__(351);
 const file_command_1 = __nccwpck_require__(717);
 const utils_1 = __nccwpck_require__(278);
 const os = __importStar(__nccwpck_require__(87));
@@ -5783,175 +5920,6 @@ function wrappy (fn, cb) {
 
 /***/ }),
 
-/***/ 349:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-function __ncc_wildcard$0 (arg) {
-  if (arg === "claim.js" || arg === "claim") return __nccwpck_require__(99);
-}
-function __ncc_wildcard$1 (arg) {
-  if (arg === "issue_comment.js" || arg === "issue_comment") return __nccwpck_require__(383);
-}
-const core = __nccwpck_require__(186);
-const github = __nccwpck_require__(438);
-const fs = __nccwpck_require__(747);
-
-const cfg = __nccwpck_require__(570);
-
-// Get octokit
-const token = core.getInput('token', { required: true });
-const client = github.getOctokit('', {auth: token});
-
-client.cfg = cfg;
-client.commands = new Map();
-client.events = new Map();
-
-const commands = fs.readdirSync(__nccwpck_require__.ab + "commands");
-for (const file of commands) {
-    const [fileName] = file.split(".");
-    const data = __ncc_wildcard$0(file);
-    client.commands.set(fileName, data);
-}
-
-const events = fs.readdirSync(__nccwpck_require__.ab + "events");
-for (const event of events) {
-    if (!event.includes(".")) continue;
-    const [eventName] = event.split(".");
-    const data = __ncc_wildcard$1(event);
-    client.events.set(eventName, data.run.bind(client));
-    // client.cfg.set(eventName, data.getConfig);
-}
-
-module.exports = client;
-
-
-/***/ }),
-
-/***/ 99:
-/***/ ((__unused_webpack_module, exports) => {
-
-exports.run = async function(payload, commenter, args) {
-    // Return if comment is made on a Pull Request.
-    // Comment out the following line if you want to use claim on PRs too.
-    if (payload.issue.pull_request) return;
-
-    const repoName = payload.repository.name;
-    const repoOwner = payload.repository.owner.login;
-    const number = payload.issue.number;
-  
-    if (payload.issue.assignees.find(assignee => assignee.login === commenter)) {
-      const error = "**ERROR:** You have already claimed this issue.";
-      return this.issues.createComment({
-        owner: repoOwner, repo: repoName, issue_number: number, body: error
-      });
-    }
-
-    claim.apply(this, [commenter, number, repoOwner, repoName]);
-}
-
-async function claim(commenter, number, repoOwner, repoName) {
-    const response = await this.issues.addAssignees({
-      owner: repoOwner, repo: repoName, issue_number: number, assignees: [commenter]
-    });
-  
-    if (response.data.assignees.length) return;
-  
-    const error = "**ERROR:** Issue claiming failed (no assignee was added).";
-  
-    return this.issues.createComment({
-      owner: repoOwner, repo: repoName, issue_number: number, body: error
-    });
-}
-
-/***/ }),
-
-/***/ 570:
-/***/ ((__unused_webpack_module, exports) => {
-
-// const core = require('@actions/core');
-
-exports.botName = "github-actions"
-
-/***/ }),
-
-/***/ 383:
-/***/ ((__unused_webpack_module, exports) => {
-
-exports.run = function(payload) {
-    const action = payload.action;
-
-    if (action === "created") {
-        parse.call(this, payload);
-    }
-};
-
-function parse(payload) {
-    const data = payload.comment;
-    const commenter = data.user.login;
-    const body = data.body;
-    const username = this.cfg.botName;
-
-    if (commenter === username || !body) return;
-
-    const prefix = RegExp(`@${username} +(\\w+)( +(--\\w+|"[^"]+"))*`, "g");
-    const parsed = body.match(prefix);
-    if (!parsed) return;
-  
-    parsed.forEach(command => {
-      const codeBlocks = [`\`\`\`\r\n${command}\r\n\`\`\``, `\`${command}\``];
-      if (codeBlocks.some(block => body.includes(block))) return;
-      const [, keyword] = command.replace(/\s+/, " ").split(" ");
-      const args = command.replace(/\s+/, " ").split(" ").slice(2).join(" ");
-      const file = this.commands.get(keyword);
-  
-      if (file) {
-        file.run.apply(this, [payload, commenter, args]);
-      }
-    });
-}
-
-// exports.getConfig = function () {
-
-// };
-
-/***/ }),
-
-/***/ 351:
-/***/ ((__unused_webpack_module, __unused_webpack_exports, __nccwpck_require__) => {
-
-const client = __nccwpck_require__(349)
-const core = __nccwpck_require__(186);
-const github = __nccwpck_require__(438);
-
-const run = async () => {
-    // Get the bot's username
-    const {status, data: {login: botName}} = await client.users.getAuthenticated();
-    if (status !== 200) {
-        throw new Error(`Received unexpected API status code ${status} while looking for bot's username.`);
-    }
-    client.cfg.botName = botName;
-
-    // Create a config file
-
-    const context = github.context;
-
-    const eventHandler = client.events.get(context.eventName);
-    if (!eventHandler) return;
-
-    const payload = context.payload;
-    eventHandler(payload);
-};
-
-
-// Run the script
-try {
-    run();
-} catch (error) {
-    core.setFailed(error.message);
-}
-
-/***/ }),
-
 /***/ 877:
 /***/ ((module) => {
 
@@ -6102,6 +6070,6 @@ module.exports = require("zlib");;
 /******/ 	// module exports must be returned from runtime so entry inlining is disabled
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
-/******/ 	return __nccwpck_require__(351);
+/******/ 	return __nccwpck_require__(338);
 /******/ })()
 ;
