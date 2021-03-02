@@ -2,34 +2,6 @@ module.exports =
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 206:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-function __ncc_wildcard$0 (arg) {
-  if (arg === "claim.js" || arg === "claim") return __nccwpck_require__(399);
-}
-const core = __nccwpck_require__(186);
-const github = __nccwpck_require__(438);
-const fs = __nccwpck_require__(747);
-
-// Get octokit
-const token = core.getInput('token', { required: true });
-const client = github.getOctokit('', {auth: token});
-
-client.commands = new Map();
-
-const commands = fs.readdirSync(__nccwpck_require__.ab + "commands");
-for (const file of commands) {
-    const [fileName] = file.split(".");
-    const data = __ncc_wildcard$0(file);
-    client.commands.set(fileName, data);
-}
-
-module.exports = client;
-
-
-/***/ }),
-
 /***/ 399:
 /***/ ((__unused_webpack_module, exports) => {
 
@@ -66,14 +38,54 @@ async function claim(commenter, number, repoOwner, repoName) {
     });
 }
 
+exports.aliasPath = "issue_assign.claim";
+
+
 /***/ }),
 
 /***/ 896:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
+function __ncc_wildcard$0 (arg) {
+  if (arg === "claim.js" || arg === "claim") return __nccwpck_require__(399);
+}
 const core = __nccwpck_require__(186);
+const github = __nccwpck_require__(438);
+const fs = __nccwpck_require__(747);
 
-exports.getConfig = async (client, owner, repo) => {
+exports.getClient = async () => {
+    // Get octokit
+    const token = core.getInput('token', { required: true });
+    const client = github.getOctokit('', {auth: token});
+
+    // Get bot's username
+    const {status, data: {login: botUsername}} = await client.users.getAuthenticated();
+    if (status !== 200) {
+        throw new Error(`Received unexpected API status code ${status} while looking for bot's username.`);
+    }
+    client.username = botUsername;
+
+    // Get user configuration
+    const {owner, repo} = github.context.issue;
+    client.config = await getUserConfig(client, owner, repo);
+
+    client.commands = new Map();
+
+    const commands = fs.readdirSync(__nccwpck_require__.ab + "commands");
+    for (const file of commands) {
+        const data = __ncc_wildcard$0(file);
+        const [category, name] = data.aliasPath.split(".");
+        const aliases = client.config[category][name];
+        // if (!aliases) continue;
+        for (let i = aliases.length; i--;) {
+            client.commands.set(aliases[i], data);
+        }
+    }
+
+    return client;
+}
+
+const getUserConfig = async (client, owner, repo) => {
     config_file_path = core.getInput('config-path');
 
     const {status, data: {content: config_data_encoded}} = await client.repos.getContent({
@@ -97,34 +109,19 @@ exports.getConfig = async (client, owner, repo) => {
 /***/ 338:
 /***/ ((__unused_webpack_module, __unused_webpack_exports, __nccwpck_require__) => {
 
-const client = __nccwpck_require__(206);
 const core = __nccwpck_require__(186);
 const github = __nccwpck_require__(438);
-
 const config = __nccwpck_require__(896);
 
 const run = async () => {
-    // Get the bot's username
-    const {status, data: {login: botUsername}} = await client.users.getAuthenticated();
-    if (status !== 200) {
-        throw new Error(`Received unexpected API status code ${status} while looking for bot's username.`);
-    }
-    client.username = botUsername;
+    const client = await config.getClient();
 
     const context = github.context;
     if (context.eventName !== "issue_comment") return;
 
-    // Get action's configuration
-    const {owner, repo} = context.issue;
-    try{
-        client.config = await config.getConfig(client, owner, repo);
-    } catch (error) {
-        core.setFailed(error.message);
-    }
-
     const payload = context.payload;
     if (payload.action === "created") {
-        parse_comment(payload);
+        parse_comment.call(client, payload);
     }
 };
 
@@ -132,7 +129,7 @@ function parse_comment(payload) {
     const data = payload.comment;
     const commenter = data.user.login;
     const body = data.body;
-    const username = client.username;
+    const username = this.username;
 
     if (commenter === username || !body) return;
 
@@ -145,10 +142,10 @@ function parse_comment(payload) {
         if (codeBlocks.some(block => body.includes(block))) return;
         const [, keyword] = command.replace(/\s+/, " ").split(" ");
         const args = command.replace(/\s+/, " ").split(" ").slice(2).join(" ");
-        const file = client.commands.get(keyword);
+        const file = this.commands.get(keyword);
     
         if (file) {
-            file.run.apply(client, [payload, commenter, args]);
+            file.run.apply(this, [payload, commenter, args]);
         }
     });
 }

@@ -38,6 +38,9 @@ async function claim(commenter, number, repoOwner, repoName) {
     });
 }
 
+exports.aliasPath = "issue_assign.claim";
+
+
 /***/ })
 
 /******/ 	});

@@ -30,3 +30,5 @@ async function claim(commenter, number, repoOwner, repoName) {
       owner: repoOwner, repo: repoName, issue_number: number, body: error
     });
 }
+
+exports.aliasPath = "issue_assign.claim";
