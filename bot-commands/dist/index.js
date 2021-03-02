@@ -12,13 +12,10 @@ const core = __nccwpck_require__(186);
 const github = __nccwpck_require__(438);
 const fs = __nccwpck_require__(747);
 
-const cfg = __nccwpck_require__(896);
-
 // Get octokit
 const token = core.getInput('token', { required: true });
 const client = github.getOctokit('', {auth: token});
 
-client.cfg = cfg;
 client.commands = new Map();
 
 const commands = fs.readdirSync(__nccwpck_require__.ab + "commands");
@@ -72,34 +69,61 @@ async function claim(commenter, number, repoOwner, repoName) {
 /***/ }),
 
 /***/ 896:
-/***/ ((__unused_webpack_module, exports) => {
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
-// const core = require('@actions/core');
+const core = __nccwpck_require__(186);
 
-exports.botName = "github-actions"
+exports.getConfig = async (client, owner, repo) => {
+    config_file_path = core.getInput('config-path');
+
+    const {status, data: {content: config_data_encoded}} = await client.repos.getContent({
+        owner,
+        repo,
+        path: config_file_path
+    });
+
+    if (status !== 200) {
+        throw new Error(`Received unexpected API status code while requsting config ${status}`);
+    }
+
+    const config_data = Buffer.from(config_data_encoded, 'base64').toString('utf-8');
+    const config_data_json = JSON.parse(config_data);
+
+    return config_data_json;
+}
 
 /***/ }),
 
 /***/ 338:
 /***/ ((__unused_webpack_module, __unused_webpack_exports, __nccwpck_require__) => {
 
-const client = __nccwpck_require__(206)
+const client = __nccwpck_require__(206);
 const core = __nccwpck_require__(186);
 const github = __nccwpck_require__(438);
 
+const config = __nccwpck_require__(896);
+
 const run = async () => {
     // Get the bot's username
-    const {status, data: {login: botName}} = await client.users.getAuthenticated();
+    const {status, data: {login: botUsername}} = await client.users.getAuthenticated();
     if (status !== 200) {
         throw new Error(`Received unexpected API status code ${status} while looking for bot's username.`);
     }
-    client.cfg.botName = botName;
+    client.username = botUsername;
 
     const context = github.context;
-    if(context.eventName !== "issue_comment") return;
+    if (context.eventName !== "issue_comment") return;
+
+    // Get action's configuration
+    const {owner, repo} = context.issue;
+    try{
+        client.config = await config.getConfig(client, owner, repo);
+    } catch (error) {
+        core.setFailed(error.message);
+    }
 
     const payload = context.payload;
-    if(payload.action === "created") {
+    if (payload.action === "created") {
         parse_comment(payload);
     }
 };
@@ -108,7 +132,7 @@ function parse_comment(payload) {
     const data = payload.comment;
     const commenter = data.user.login;
     const body = data.body;
-    const username = client.cfg.botName;
+    const username = client.username;
 
     if (commenter === username || !body) return;
 

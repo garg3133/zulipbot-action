@@ -5,6 +5,9 @@ inputs:
   token:
     description: "Personal access token of the Github account to be used as the bot."
     required: true
+  config-path:
+    description: "Relative path to the configuration file w.r.t the root of repository."
+    required: true
 runs:
   using: 'node12'
   main: 'dist/index.js'
