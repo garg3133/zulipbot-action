@@ -2,7 +2,7 @@ module.exports =
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 96:
+/***/ 399:
 /***/ ((__unused_webpack_module, exports) => {
 
 exports.run = async function(payload, commenter, args) {
@@ -81,6 +81,6 @@ exports.aliasPath = "issue_assign.claim";
 /******/ 	// module exports must be returned from runtime so entry inlining is disabled
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
-/******/ 	return __nccwpck_require__(96);
+/******/ 	return __nccwpck_require__(399);
 /******/ })()
 ;
