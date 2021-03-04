@@ -39,11 +39,19 @@ exports.run = async function(payload, commenter, args) {
     const repoName = payload.repository.name;
     const repoOwner = payload.repository.owner.login;
     const number = payload.issue.number;
-  
+    const limit = this.config.issue_assign.max_issue_assignees;
+
     if (payload.issue.assignees.find(assignee => assignee.login === commenter)) {
       const error = "**ERROR:** You have already claimed this issue.";
       return this.issues.createComment({
         owner: repoOwner, repo: repoName, issue_number: number, body: error
+      });
+    }
+
+    if (payload.issue.assignees.length >= limit) {
+      const warn = this.templates.get("multipleClaimWarning").format({commenter});
+      return this.issues.createComment({
+        owner: repoOwner, repo: repoName, issue_number: number, body: warn
       });
     }
 
@@ -98,7 +106,6 @@ exports.getClient = async () => {
 
     // Set bot's commands
     client.commands = new Map();
-
     const commands = fs.readdirSync(__nccwpck_require__.ab + "commands");
     for (const file of commands) {
         const data = __ncc_wildcard$0(file);
@@ -112,7 +119,6 @@ exports.getClient = async () => {
 
     // Set bot's templates
     client.templates = new Map();
-
     const Template = __nccwpck_require__(767);
     const templates = fs.readdirSync(__nccwpck_require__.ab + "templates");
     const userTemplates = await getUserTemplates(client, owner, repo);
