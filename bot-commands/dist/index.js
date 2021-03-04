@@ -96,8 +96,8 @@ exports.getClient = async () => {
   const {owner, repo} = github.context.issue;
   client.config = await getUserConfig(client, owner, repo);
 
+  // Set bot's commands
   client.commands = new Map();
-
   const commands = fs.readdirSync(__nccwpck_require__.ab + "commands");
   for (const file of commands) {
     const data = __ncc_wildcard$0(file);
@@ -107,6 +107,23 @@ exports.getClient = async () => {
     for (let i = aliases.length; i--;) {
       client.commands.set(aliases[i], data);
     }
+  }
+
+  // Set bot's templates
+  client.templates = new Map();
+  const Template = __nccwpck_require__(767);
+  const templates = fs.readdirSync(__nccwpck_require__.ab + "templates");
+  const userTemplates = await getUserTemplates(client, owner, repo);
+  for (const file of templates) {
+    let content;
+    if (userTemplates.includes(file)) {
+      content = await getUserTemplate(client, owner, repo, file);
+    } else {
+      content = fs.readFileSync(__nccwpck_require__.ab + "templates/" + file, "utf8");
+    }
+    const [name] = file.split(".md");
+    const template = new Template(client, name, content);
+    client.templates.set(name, template);
   }
 
   return client;
@@ -130,6 +147,49 @@ const getUserConfig = async (client, owner, repo) => {
 
   return config_data_json;
 }
+
+const getUserTemplates = async (client, owner, repo) => {
+  const templates_dir_path = core.getInput('templates-dir-path');
+
+  if (!templates_dir_path) return [];
+
+  const {status, data: userTemplates} = await client.repos.getContent({
+    owner,
+    repo,
+    path: templates_dir_path
+  });
+
+  if (status !== 200) {
+    throw new Error(`Received unexpected API status code while requsting templates ${status}`);
+  }
+
+  const userTemplatesNameArray = userTemplates.map(template => template.name);
+
+  return userTemplatesNameArray;
+}
+
+const getUserTemplate = async (client, owner, repo, templateName) => {
+  const templates_dir_path = core.getInput('templates-dir-path');
+
+  if (!templates_dir_path) return "";
+
+  const template_file_path = templates_dir_path + '/' + templateName;
+
+  const {status, data: {content: template_data_encoded}} = await client.repos.getContent({
+    owner,
+    repo,
+    path: template_file_path
+  });
+
+  if (status !== 200) {
+    throw new Error(`Received unexpected API status code while requsting template ${status}`);
+  }
+
+  const template_data = Buffer.from(template_data_encoded, 'base64').toString('utf-8');
+
+  return template_data;
+}
+
 
 /***/ }),
 
@@ -183,6 +243,53 @@ try {
 } catch (error) {
   core.setFailed(error.message);
 }
+
+
+/***/ }),
+
+/***/ 767:
+/***/ ((module) => {
+
+class Template {
+  constructor(client, name, content) {
+    /**
+     * The client that instantiated this template
+     * @type {Object}
+     */
+    this.client = client;
+
+    /**
+     * The name of this template
+     * @type {string}
+     */
+    this.name = name;
+
+    /**
+     * The content of this template
+     * @type {string}
+     */
+    this.content = content;
+  }
+
+  /**
+   * Formats template content with values from a given context.
+   *
+   * @param {Object} context Context with names/values of variables to format
+   * @return {String} Formatted template content.
+   */
+
+  format(context) {
+    let content = this.content;
+    for (const variable of Object.entries(context)) {
+      const [expression, value] = variable;
+      content = content.replace(new RegExp(`{${expression}}`, "g"), value);
+    }
+
+    return content;
+  }
+}
+
+module.exports = Template;
 
 
 /***/ }),
