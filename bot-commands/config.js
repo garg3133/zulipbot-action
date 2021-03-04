@@ -35,7 +35,7 @@ exports.getClient = async () => {
 }
 
 const getUserConfig = async (client, owner, repo) => {
-  config_file_path = core.getInput('config-path');
+  const config_file_path = core.getInput('config-file-path');
 
   const {status, data: {content: config_data_encoded}} = await client.repos.getContent({
     owner,
