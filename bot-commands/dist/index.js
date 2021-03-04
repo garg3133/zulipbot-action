@@ -39,11 +39,19 @@ exports.run = async function(payload, commenter, args) {
   const repoName = payload.repository.name;
   const repoOwner = payload.repository.owner.login;
   const number = payload.issue.number;
+  const limit = this.config.issue_assign.max_issue_assignees;
 
   if (payload.issue.assignees.find(assignee => assignee.login === commenter)) {
     const error = "**ERROR:** You have already claimed this issue.";
     return this.issues.createComment({
       owner: repoOwner, repo: repoName, issue_number: number, body: error
+    });
+  }
+
+  if (payload.issue.assignees.length >= limit) {
+    const warn = this.templates.get("multipleClaimWarning").format({commenter});
+    return this.issues.createComment({
+      owner: repoOwner, repo: repoName, issue_number: number, body: warn
     });
   }
 
