@@ -1,6 +1,6 @@
 const core = require("@actions/core");
 const github = require("@actions/github");
-const config = require("./config.js");
+const config = require("./client-config.js");
 
 const run = async () => {
   const client = await config.getClient();

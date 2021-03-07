@@ -34,7 +34,7 @@ exports.getClient = async () => {
   // Set bot's templates
   client.templates = new Map();
   const Template = require("./structures/Template.js");
-  const templates = fs.readdirSync(`${__dirname}/templates`);
+  const templates = fs.readdirSync(`${__dirname}/config/templates`);
   const userTemplates = await getUserTemplates(client, owner, repo);
   for (const file of templates) {
     let content;
