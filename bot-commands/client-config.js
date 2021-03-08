@@ -1,5 +1,6 @@
 const core = require('@actions/core');
 const github = require('@actions/github');
+const yaml = require('js-yaml');
 const fs = require("fs");
 
 exports.getClient = async () => {
@@ -14,9 +15,9 @@ exports.getClient = async () => {
   }
   client.username = botUsername;
 
-  // Get user configuration
+  // Get bot's configuration
   const {owner, repo} = github.context.issue;
-  client.config = await getUserConfig(client, owner, repo);
+  client.config = await getBotConfig(client, owner, repo);
 
   // Set bot's commands
   client.commands = new Map();
@@ -51,7 +52,7 @@ exports.getClient = async () => {
   return client;
 }
 
-const getUserConfig = async (client, owner, repo) => {
+const getBotConfig = async (client, owner, repo) => {
   const config_file_path = core.getInput('config-file-path');
 
   const {status, data: {content: config_data_encoded}} = await client.repos.getContent({
@@ -66,6 +67,9 @@ const getUserConfig = async (client, owner, repo) => {
 
   const config_data = Buffer.from(config_data_encoded, 'base64').toString('utf-8');
   const config_data_json = JSON.parse(config_data);
+
+  const default_config = yaml.load(fs.readFileSync(`${__dirname}/config/default-config.yaml`, 'utf8'));
+  console.log(default_config, typeof default_config);
 
   return config_data_json;
 }

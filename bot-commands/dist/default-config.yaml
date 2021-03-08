@@ -1,0 +1,63 @@
+# This is the default config file for the action bot-commands.
+
+# Bot commands you wish to use in your repository.
+# No commands work by default (note that lists corresponding
+# to all the commands below are empty by default).
+# 
+# List corresponding to commands enlists the keywords which can
+# be used to execute the command. For ex., if we write
+# claim-issue: ["claim"], an issue can be claimed by commenting
+# `@bot-username claim` on an issue.
+commands:
+  # Keywords to claim an issue
+  # Ex. claim-issue: ["claim"]
+  claim-issue: []
+  # Keywords to abandon an issue
+  # Ex. abandon-issue: ["abandon", "unclaim", "abort"]
+  abandon-issue: []
+  # Keywords to add label to an issue/PR
+  # Ex. add-label: ["add"]
+  add-label: []
+  # Keywords to remove label from an issue/PR
+  # Ex. remove-label: ["remove"]
+  remove-label: []
+
+issue-claim-config:
+  # Max contributors who can claim an issue at the same time.
+  max-issue-assignees: 1
+  # Settings for new contributors.
+  new-contributors:
+    # Whether to add the new contributor as a collaborator to
+    # repository.
+    # 
+    # Accepted values:
+    # false -> Don't add as a collaborator
+    # pull/push/admin/maintain/triage -> Add as collaborator
+    # and grant the corresponding permission.
+    # For more details on each permission levels:
+    # (https://docs.github.com/en/rest/reference/repos#add-a-repository-collaborator)
+    add-as-collaborator: false
+    # Maximum number of issues a new contributor
+    # can claim.
+    max-claims: Infinity
+    # Warn and unallow the new contributors from claiming an
+    # issue with the following properties.
+    warn:
+      # The labels whose presence or absence on an issue should
+      # trigger the warning and unallow the new contributors 
+      # from claiming it.
+      labels: []
+      # Whether to warn the new contributors on the presence of
+      # the above mentioned labels on an issue, or on their
+      # absence from an issue.
+      warn-on-presence: true
+      # Whether or not to allow the new contributors to bypass
+      # the warning and claim the issue anyway by including the
+      # `--force` flag in the command.
+      force: false
+
+label-config:
+  # Allow users other than issue/PR author to change labels.
+  # types: false/true/list of users allowed to change the
+  # labels, identified by their GitHub usernames.
+  allow-non-author: false
