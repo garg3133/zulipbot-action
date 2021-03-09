@@ -1,0 +1,77 @@
+# Example config for `bot-commands` action.
+
+# Mentioning the features you wish to use is mandatory.
+# Not mentioning a feature or putting a `false` in front of
+# that feature would mean you don't want to use that feature.
+
+# For additional config of each feature, only mention the
+# properties you wish to change, skip to use default.
+
+features:
+
+  # Enable @add and @remove label commands.
+  # @types:
+  #   true: Use with default config;
+  #   false: Don't use this command;
+  #   Provide config to use;
+  labels:
+
+    # Allow non-authors of issue/PR to change labels.
+    # @types:
+    #   true: allow all;
+    #   false: allow author only;
+    #   ["garg3133",..]: allow users mentioned in the list,
+    #   identified by their usernames;
+    # @default: false
+    allow_non_authors: true
+
+  # Enable @claim and @abandon issue commands.
+  # @types:
+  #   true: Use with default config;
+  #   false: Don't use this command;
+  #   Provide config to use;
+  claim:
+
+    # Maximum users to claim a single issue.
+    # Don't mention to use default config.
+    # @default: 1
+    max_assignees: 2
+
+    # New contributors config.
+    # Don't mention to use default config.
+    new_contributors:
+
+      # Add the contributor as collaborator on your repository.
+      # @types:
+      #   false: Don't add as collaborator;
+      #   (Below options only valid for org-based repositories)
+      #   pull: Add with read permissions;
+      #   push: Add with write permissions;
+      #   triage: Add with triage permissions;
+      # @default: false
+      add_as_collaborator: pull
+
+      # Maximum issues new contributor can claim at once.
+      # @default: Infinity
+      max_issue_claims: 2
+
+      # Warn new contributors and disallow them from claiming
+      # the issues which match the below mentioned conditions.
+      # Don't mention to use default config.
+      warn_and_disallow_claim:
+
+        # Labels for which new contributors should be warned
+        # and disallowed from claiming the issue.
+        # @default: [] (empty list)
+        for_labels: ["good first issue", "help wanted"]
+
+        # Warn and disallow to claim on presence or on absence
+        # of the above labels?
+        # @default: true (disallow on presence of above labels)
+        on_presence: false
+
+        # Allow new contributors to bypass the warning and
+        # claim the issue anyway using `--force` flag with the
+        # command.
+        # @default: false
+        allow_force: true
