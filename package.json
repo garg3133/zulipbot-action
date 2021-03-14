@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build-bot-commands": "ncc build bot-commands -o bot-commands/dist --license licenses.txt",
+    "build-area-labels": "ncc build area-labels -o area-labels/dist --license licenses.txt",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -20,7 +21,8 @@
   "homepage": "https://github.com/garg3133/issue-claimer-action#readme",
   "dependencies": {
     "@actions/core": "^1.2.6",
-    "@actions/github": "^4.0.0"
+    "@actions/github": "^4.0.0",
+    "js-yaml": "^4.0.0"
   },
   "devDependencies": {
     "@vercel/ncc": "^0.27.0"
