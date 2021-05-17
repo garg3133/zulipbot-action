@@ -7,6 +7,7 @@
     "build-bot-commands": "ncc build bot-commands -o bot-commands/dist --license licenses.txt",
     "build-area-labels": "ncc build area-labels -o area-labels/dist --license licenses.txt",
     "build-activity-action": "ncc build activity-action -o activity-action/dist --license licenses.txt",
+    "build-pulls-action": "ncc build pulls-action -o pulls-action/dist --license licenses.txt",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -23,7 +24,8 @@
   "dependencies": {
     "@actions/core": "^1.2.6",
     "@actions/github": "^4.0.0",
-    "js-yaml": "^4.0.0"
+    "adm-zip": "^0.5.5",
+    "js-yaml": "^4.1.0"
   },
   "devDependencies": {
     "@vercel/ncc": "^0.27.0"
