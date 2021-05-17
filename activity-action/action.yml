@@ -1,0 +1,38 @@
+name: Activity Action
+description: Lets the maintainers give reminders to assignees on stale issues and unassign the issue if the assignee don't respond.
+author: garg3133
+inputs:
+  token:
+    description: "Personal access token of the Github account to be used as the bot."
+    required: true
+  templates-dir-path:
+    description: "Relative path to the directory containing the templates w.r.t the root of your repository."
+    required: false
+  issue_assigned_label:
+    description: Mark the issue as assigned.
+    required: false
+  skip_issue_with_label:
+    description: Prevent an issue from being checked by the action, resulting in no warnings or unassignement on that issue.
+    required: false
+  skip_issue_with_pull_label:
+    description: Skip an issue from being checked by the action if the linked pull request contains this label.
+    required: false
+  clear_closed_issue:
+    description: Whether or not to remove the `issue_assgned_label`, `issue_skip_label` and assignees from closed issue.
+    required: false
+    default: false
+  days_until_warning:
+    description: Number of days since an issue was last updated before it is considered inactive, resulting in activity reminders.
+    required: true
+  days_until_unassign:
+    description: >
+      Number of days since an issue assignee was reminded to work on their inactive issue
+      before the assignee is removed from the issue due to inactivity.
+    required: true
+  assign_pull_to_reviewer:
+    description: Whether or not to automatically add all reviewers of a pull request as assignees.
+    required: false
+    default: false
+runs:
+  using: node12
+  main: dist/index.js
