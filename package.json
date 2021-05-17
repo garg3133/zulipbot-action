@@ -1,7 +1,7 @@
 {
-  "name": "issue-claimer-action",
+  "name": "zulipbot-action",
   "version": "1.0.0",
-  "description": "",
+  "description": "GitHub workflow-optimizing action built by Zulip",
   "main": "index.js",
   "scripts": {
     "build-bot-commands": "ncc build bot-commands -o bot-commands/dist --license licenses.txt",
@@ -12,15 +12,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/garg3133/issue-claimer-action.git"
+    "url": "git+https://github.com/garg3133/zulipbot-action.git"
   },
   "keywords": [],
-  "author": "",
+  "author": "Priyansh Garg (garg3133)",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/garg3133/issue-claimer-action/issues"
+    "url": "https://github.com/garg3133/zulipbot-action/issues"
   },
-  "homepage": "https://github.com/garg3133/issue-claimer-action#readme",
+  "homepage": "https://github.com/garg3133/zulipbot-action#readme",
   "dependencies": {
     "@actions/core": "^1.2.6",
     "@actions/github": "^4.0.0",
