@@ -531,47 +531,49 @@ const run = async (client, owner, repo) => {
 
 
 const activity_action_run = async () => {
-  const client = getClient();
-  console.log(client);
+  try {
+    const client = getClient();
+    console.log(client);
 
-  // Get bot's username
-  client.username = await getClientLogin(client);
-  console.log("Client username: ", client.username);
+    // Get bot's username
+    client.username = await getClientLogin(client);
+    console.log("Client username: ", client.username);
 
-  // Get action's config
-  client.config = getActionConfig();
+    // Get action's config
+    client.config = getActionConfig();
 
-  // const context = github.context;
-  const { owner, repo } = github.context.issue;
+    // const context = github.context;
+    const { owner, repo } = github.context.issue;
 
-  // Get templates
-  client.templates = await getTemplates("activity-action", client, owner, repo);
+    // Get templates
+    client.templates = await getTemplates(
+      "activity-action",
+      client,
+      owner,
+      repo
+    );
 
-  const payload = github.context.payload;
-  console.log(payload);
+    const payload = github.context.payload;
+    console.log(payload);
 
-  if (
-    github.context.eventName === "issues" &&
-    client.config.issue_assigned_label
-  ) {
-    if (payload.action === "assigned" || payload.action === "unassigned") {
-      // Do something
+    if (github.context.eventName === "issues" && client.config.issue_assigned_label) {
+      if (payload.action === "assigned" || payload.action === "unassigned") {
+        // Do something
+      }
+    } else if (github.context.eventName === "schedule") {
+      run(client, owner, repo);
     }
-  } else if (github.context.eventName === "schedule") {
-    run(client, owner, repo);
-  }
 
-  // if (payload.action === "labeled" || payload.action === "unlabeled") {
-  //   areaLabel.run(client, payload);
-  // }
+    // if (payload.action === "labeled" || payload.action === "unlabeled") {
+    //   areaLabel.run(client, payload);
+    // }
+  } catch (error) {
+    (0,core.setFailed)(error.message);
+  }
 };
 
 // Run the script
-try {
-  activity_action_run();
-} catch (error) {
-  (0,core.setFailed)(error.message);
-}
+activity_action_run();
 
 
 /***/ }),
