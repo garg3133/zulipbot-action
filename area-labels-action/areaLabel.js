@@ -1,4 +1,4 @@
-exports.run = async function (client, payload) {
+export const run = async (client, payload) => {
   const issue = payload.issue || payload.pull_request;
   const number = issue.number;
   const issueLabels = issue.labels.map((label) => label.name);
@@ -62,7 +62,7 @@ exports.run = async function (client, payload) {
     }
   }
 
-  client.issues.update({
+  await client.issues.update({
     owner: repoOwner,
     repo: repoName,
     issue_number: number,

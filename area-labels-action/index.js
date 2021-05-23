@@ -26,7 +26,7 @@ const run = async () => {
 
     const payload = context.payload;
     if (payload.action === "labeled" || payload.action === "unlabeled") {
-      areaLabel.run(client, payload);
+      await areaLabel.run(client, payload);
     }
   } catch (error) {
     setFailed(error.message);
