@@ -4008,11 +4008,9 @@ const run = async (client, payload) => {
 const area_labels_action_run = async () => {
   try {
     const client = getClient();
-    console.log(client);
 
     // Get bot's username
     client.username = await getClientLogin(client);
-    console.log("Client username: ", client.username);
 
     const {owner, repo} = github.context.issue;
 

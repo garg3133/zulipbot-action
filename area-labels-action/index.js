@@ -7,11 +7,9 @@ import * as areaLabel from "./areaLabel";
 const run = async () => {
   try {
     const client = getClient();
-    console.log(client);
 
     // Get bot's username
     client.username = await getClientLogin(client);
-    console.log("Client username: ", client.username);
 
     const {owner, repo} = context.issue;
 
