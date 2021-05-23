@@ -4,7 +4,7 @@
   "description": "GitHub workflow-optimizing action built by Zulip",
   "main": "index.js",
   "scripts": {
-    "build-bot-commands": "ncc build bot-commands -o bot-commands/dist --license licenses.txt",
+    "build-bot-commands-action": "ncc build bot-commands-action -o bot-commands-action/dist --license licenses.txt",
     "build-area-labels-action": "ncc build area-labels-action -o area-labels-action/dist --license licenses.txt",
     "build-activity-action": "ncc build activity-action -o activity-action/dist --license licenses.txt",
     "build-pulls-action": "ncc build pulls-action -o pulls-action/dist --license licenses.txt",
