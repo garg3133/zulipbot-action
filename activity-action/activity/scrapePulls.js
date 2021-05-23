@@ -1,6 +1,6 @@
-import Search from "../structures/ReferenceSearch";
+import Search from "../../structures/ReferenceSearch";
 import scrapeInactiveIssues from "./scrapeInactiveIssues";
-import * as utils from "./utils";
+import * as utils from "../../utils";
 
 export default async function scrapePulls(client, pulls, owner, repo) {
   // Check all open Pull Requests and their commits and add to
@@ -12,11 +12,13 @@ export default async function scrapePulls(client, pulls, owner, repo) {
     let time = Date.parse(pull.updated_at);
     const number = pull.number;
 
+    console.log("Currently on PR: ", number);
+
     if (client.config.skip_issue_with_pull_label) {
       // Set time = Date.now() for the PR if it contains this
       // label so that the linked issue gets skipped
       // automatically.
-      console.log("hello");
+      console.log("Inside skip issue with pull label");
       const skip_linked_issue = pull.labels.find((label) => {
         return label.name === client.config.skip_issue_with_pull_label;
       });
@@ -26,14 +28,16 @@ export default async function scrapePulls(client, pulls, owner, repo) {
     }
 
     // Find all the linked issues to the PR and its commits.
-    const references = new Search(client, pull, pull.base.repo);
+    const references = new Search(client, pull, owner, repo);
     const bodyRefs = await references.getBody();
     const commitRefs = await references.getCommits();
 
     if (bodyRefs.length || commitRefs.length) {
       const references = commitRefs.concat(bodyRefs);
+
       // sort and remove duplicate references
-      const refs = Array.from(new Set(references)).sort();
+      const refs = utils.deduplicate(references);
+
       refs.forEach((ref) => {
         const issue_tag = `${repo}/${ref}`;
         if (referenceList.has(issue_tag)) {
