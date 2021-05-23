@@ -10,7 +10,7 @@ const run = async () => {
   console.log(client);
 
   // Get bot's username
-  client.username = getClientLogin(client);
+  client.username = await getClientLogin(client);
   console.log("Client username: ", client.username);
 
   // Get action's config
@@ -20,7 +20,7 @@ const run = async () => {
   const { owner, repo } = context.issue;
 
   // Get templates
-  client.templates = getTemplates("activity-action", client, owner, repo);
+  client.templates = await getTemplates("activity-action", client, owner, repo);
 
   const payload = context.payload;
   console.log(payload);

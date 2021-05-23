@@ -535,7 +535,7 @@ const activity_action_run = async () => {
   console.log(client);
 
   // Get bot's username
-  client.username = getClientLogin(client);
+  client.username = await getClientLogin(client);
   console.log("Client username: ", client.username);
 
   // Get action's config
@@ -545,7 +545,7 @@ const activity_action_run = async () => {
   const { owner, repo } = github.context.issue;
 
   // Get templates
-  client.templates = getTemplates("activity-action", client, owner, repo);
+  client.templates = await getTemplates("activity-action", client, owner, repo);
 
   const payload = github.context.payload;
   console.log(payload);
