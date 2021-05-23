@@ -8,11 +8,9 @@ import * as activity from "./activity/activity";
 const run = async () => {
   try {
     const client = getClient();
-    console.log(client);
 
     // Get bot's username
     client.username = await getClientLogin(client);
-    console.log("Client username: ", client.username);
 
     // Get action's config
     client.config = getActionConfig();
@@ -46,6 +44,7 @@ const run = async () => {
     setFailed(error.message);
   }
 };
+
 
 // Run the script
 run();

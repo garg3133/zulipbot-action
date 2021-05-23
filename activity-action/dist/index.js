@@ -533,11 +533,9 @@ const run = async (client, owner, repo) => {
 const activity_action_run = async () => {
   try {
     const client = getClient();
-    console.log(client);
 
     // Get bot's username
     client.username = await getClientLogin(client);
-    console.log("Client username: ", client.username);
 
     // Get action's config
     client.config = getActionConfig();
@@ -571,6 +569,7 @@ const activity_action_run = async () => {
     (0,core.setFailed)(error.message);
   }
 };
+
 
 // Run the script
 activity_action_run();
