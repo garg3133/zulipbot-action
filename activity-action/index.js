@@ -1,24 +1,38 @@
-import * as core from "@actions/core";
-import * as github from "@actions/github";
-import * as config from "./clientConfig";
+import { setFailed } from "@actions/core";
+import { context } from "@actions/github";
+import { getClient, getClientLogin } from "../client_config/client";
+import getActionConfig from "./activity/getActionConfig";
+import getTemplates from "../client_config/getTemplates";
 import * as activity from "./activity/activity";
 
 const run = async () => {
-  const client = await config.getClient();
+  const client = getClient();
+  console.log(client);
 
-  const context = github.context;
+  // Get bot's username
+  client.username = getClientLogin(client);
+  console.log("Client username: ", client.username);
+
+  // Get action's config
+  client.config = getActionConfig();
+
+  // const context = github.context;
+  const { owner, repo } = context.issue;
+
+  // Get templates
+  client.templates = getTemplates("activity-action", client, owner, repo);
+
   const payload = context.payload;
   console.log(payload);
 
   if (
     context.eventName === "issues" &&
-    client.config.get(issue_assigned_label)
+    client.config.issue_assigned_label
   ) {
     if (payload.action === "assigned" || payload.action === "unassigned") {
       // Do something
     }
   } else if (context.eventName === "schedule") {
-    const { owner, repo } = context.issue;
     activity.run(client, owner, repo);
   }
 
@@ -31,5 +45,5 @@ const run = async () => {
 try {
   run();
 } catch (error) {
-  core.setFailed(error.message);
+  setFailed(error.message);
 }
