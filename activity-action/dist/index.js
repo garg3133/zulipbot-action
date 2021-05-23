@@ -2,7 +2,7 @@ module.exports =
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 167:
+/***/ 48:
 /***/ ((__unused_webpack_module, __webpack_exports__, __nccwpck_require__) => {
 
 "use strict";
@@ -229,23 +229,7 @@ const getUserTemplate = async (client, owner, repo, templateName) => {
   return template_data;
 };
 
-// CONCATENATED MODULE: ./activity-action/activity/utils.js
-/**
- * Retrieves all pages of data from a node-github method.
- * @param {String} path Path of the method in the format "api.method".
- * @param {Object} parameters Parameters to pass to the method.
- * @return {Array} Array of all data entries.
- */
-
-const utils_getAllPages = async (client, path, parameters) => {
-  const [api, method] = path.split(".");
-  const options = client[api][method].endpoint.merge(parameters);
-  const responses = await client.paginate(options);
-
-  return responses;
-};
-
-// CONCATENATED MODULE: ./activity-action/structures/ReferenceSearch.js
+// CONCATENATED MODULE: ./structures/ReferenceSearch.js
 
 /* eslint-disable array-element-newline */
 
@@ -308,7 +292,7 @@ class ReferenceSearch {
     let matches = [];
     strings.forEach(string => {
       const wordMatches = keywords.map(tense => {
-        const regex = new RegExp(`${tense}:? *#([0-9]+)`, "i");
+        const regex = new RegExp(`${tense}:? #([0-9]+)`, "i");
         const match = string.match(regex);
         return match ? match[1] : match;
       });
@@ -351,6 +335,7 @@ class ReferenceSearch {
   }
 }
 
+
 // CONCATENATED MODULE: ./activity-action/activity/scrapeInactiveIssues.js
 async function scrapeInactiveIssues(
   client,
@@ -359,8 +344,8 @@ async function scrapeInactiveIssues(
   owner,
   repo
 ) {
-  const warn_ms = client.config.days_until_warning * 86400000;
-  const abandon_ms = client.config.days_until_unassign * 86400000;
+  const warn_ms = client.config.days_until_warning * 86400000 / 24;
+  const abandon_ms = client.config.days_until_unassign * 86400000 / 24;
   console.log(warn_ms, abandon_ms);
 
   for (const issue of issues) {
@@ -467,11 +452,13 @@ async function scrapePulls(client, pulls, owner, repo) {
     let time = Date.parse(pull.updated_at);
     const number = pull.number;
 
+    console.log("Currently on PR: ", number);
+
     if (client.config.skip_issue_with_pull_label) {
       // Set time = Date.now() for the PR if it contains this
       // label so that the linked issue gets skipped
       // automatically.
-      console.log("hello");
+      console.log("Inside skip issue with pull label");
       const skip_linked_issue = pull.labels.find((label) => {
         return label.name === client.config.skip_issue_with_pull_label;
       });
@@ -487,8 +474,10 @@ async function scrapePulls(client, pulls, owner, repo) {
 
     if (bodyRefs.length || commitRefs.length) {
       const references = commitRefs.concat(bodyRefs);
+
       // sort and remove duplicate references
-      const refs = Array.from(new Set(references)).sort();
+      const refs = deduplicate(references);
+
       refs.forEach((ref) => {
         const issue_tag = `${repo}/${ref}`;
         if (referenceList.has(issue_tag)) {
@@ -510,7 +499,7 @@ async function scrapePulls(client, pulls, owner, repo) {
     console.log(key, value);
   }
   // Bring in all open and assigned issues.
-  const issues = await utils_getAllPages(client, "issues.listForRepo", {
+  const issues = await getAllPages(client, "issues.listForRepo", {
     owner,
     repo,
     assignee: "*",
@@ -525,7 +514,7 @@ async function scrapePulls(client, pulls, owner, repo) {
 
 const run = async (client, owner, repo) => {
   // Bring in all open pull requests.
-  const pulls = await utils_getAllPages(client, "pulls.list", {
+  const pulls = await getAllPages(client, "pulls.list", {
     owner,
     repo,
   });
@@ -6529,6 +6518,6 @@ module.exports = require("zlib");;
 /******/ 	// module exports must be returned from runtime so entry inlining is disabled
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
-/******/ 	return __nccwpck_require__(167);
+/******/ 	return __nccwpck_require__(48);
 /******/ })()
 ;
