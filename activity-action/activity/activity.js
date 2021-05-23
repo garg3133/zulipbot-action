@@ -1,9 +1,9 @@
-import * as utils from "./utils";
+import { getAllPages } from "../../utils";
 import scrapePulls from "./scrapePulls";
 
 export const run = async (client, owner, repo) => {
   // Bring in all open pull requests.
-  const pulls = await utils.getAllPages(client, "pulls.list", {
+  const pulls = await getAllPages(client, "pulls.list", {
     owner,
     repo,
   });
