@@ -2,7 +2,7 @@ module.exports =
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 392:
+/***/ 167:
 /***/ ((__unused_webpack_module, __webpack_exports__, __nccwpck_require__) => {
 
 "use strict";
@@ -13,9 +13,70 @@ __nccwpck_require__.r(__webpack_exports__);
 var core = __nccwpck_require__(186);
 // EXTERNAL MODULE: ./node_modules/@actions/github/lib/github.js
 var github = __nccwpck_require__(438);
+// CONCATENATED MODULE: ./client_config/client.js
+
+
+
+const getClient = () => {
+  const token = core.getInput("token", { required: true });
+  const client = github.getOctokit("", { auth: token });
+
+  return client;
+};
+
+const getClientLogin = async (client) => {
+  const {
+    status,
+    data: { login },
+  } = await client.users.getAuthenticated();
+
+  if (status !== 200) {
+    throw new Error(
+      `Received unexpected API status code ${status} while requesting for bot's username.`
+    );
+  }
+
+  return login;
+};
+
+// CONCATENATED MODULE: ./activity-action/activity/getActionConfig.js
+
+
+function getActionConfig() {
+  const config = new Object();
+
+  config.issue_assigned_label = (0,core.getInput)("issue_assigned_label");
+  config.skip_issue_with_label = (0,core.getInput)("skip_issue_with_label");
+  config.skip_issue_with_pull_label = (0,core.getInput)("skip_issue_with_pull_label");
+  config.clear_closed_issue = (0,core.getInput)("clear_closed_issue") === "true";
+  config.days_until_warning = parseInt(
+    (0,core.getInput)("days_until_warning", { required: true })
+  );
+  config.days_until_unassign = parseInt(
+    (0,core.getInput)("days_until_unassign", { required: true })
+  );
+  config.assign_pull_to_reviewer =
+    (0,core.getInput)("assign_pull_to_reviewer") === "true";
+
+  console.log(config);
+
+  return config;
+}
+
 // EXTERNAL MODULE: external "fs"
 var external_fs_ = __nccwpck_require__(747);
-// CONCATENATED MODULE: ./activity-action/activity/utils.js
+// CONCATENATED MODULE: ./utils.js
+/**
+ * Sorts and removes duplicate elements from a given array.
+ *
+ * @param {Array} array Array to remove duplicates from.
+ * @return {Array} Sorted array containing only unique entries.
+ */
+
+const deduplicate = (array) => {
+  return Array.from(new Set(array)).sort();
+};
+
 /**
  * Retrieves all pages of data from a node-github method.
  * @param {String} path Path of the method in the format "api.method".
@@ -31,7 +92,7 @@ const getAllPages = async (client, path, parameters) => {
   return responses;
 };
 
-// CONCATENATED MODULE: ./activity-action/structures/Template.js
+// CONCATENATED MODULE: ./structures/Template.js
 
 
 class Template {
@@ -55,7 +116,7 @@ class Template {
     this.content = content;
   }
 
-   /**
+  /**
    * Finds comments generated from templates on a issue/pull request.
    *
    * @param {Object} repo Repository object of the PR/issue.
@@ -66,7 +127,7 @@ class Template {
     const method = "issues.listComments";
     const comments = await getAllPages(this.client, method, parameters);
 
-    const templateComments = comments.filter(comment => {
+    const templateComments = comments.filter((comment) => {
       // Use end of template comments to check if comment is from template
       const matched = comment.body.endsWith(`<!-- ${this.name} -->`);
       const fromClient = comment.user.login === this.client.username;
@@ -94,76 +155,37 @@ class Template {
   }
 }
 
-// CONCATENATED MODULE: ./activity-action/clientConfig.js
+// CONCATENATED MODULE: ./client_config/getTemplates.js
 
 
 
 
-
-const getClient = async () => {
-  // Get octokit
-  const token = core.getInput("token", { required: true });
-  const client = github.getOctokit("", { auth: token });
-
-  // Get bot's username
-  const {
-    status,
-    data: { login: botUsername },
-  } = await client.users.getAuthenticated();
-  if (status !== 200) {
-    throw new Error(
-      `Received unexpected API status code ${status} while looking for bot's username.`
-    );
-  }
-  client.username = botUsername;
-
-  const { owner, repo } = github.context.issue;
-
-  // Get all inputs
-  client.config = new Object();
-
-  client.config.issue_assigned_label = core.getInput("issue_assigned_label");
-  client.config.skip_issue_with_label = core.getInput("skip_issue_with_label");
-  client.config.skip_issue_with_pull_label = core.getInput(
-    "skip_issue_with_pull_label"
+async function getTemplates(actionName, client, owner, repo) {
+  const templatesMap = new Map();
+  const defaultTemplates = external_fs_.readdirSync(
+    `${__dirname}/../${actionName}/templates`
   );
-  client.config.clear_closed_issue =
-    core.getInput("clear_closed_issue") === "true";
-  client.config.days_until_warning = parseInt(
-    core.getInput("days_until_warning", { required: true })
-  );
-  client.config.days_until_unassign = parseInt(
-    core.getInput("days_until_unassign", { required: true })
-  );
-  client.config.assign_pull_to_reviewer =
-    core.getInput("assign_pull_to_reviewer") === "true";
-
-  console.log(client.config);
-
-  // Set bot's templates
-  client.templates = new Map();
-  const templates = external_fs_.readdirSync(__nccwpck_require__.ab + "templates");
   const userTemplates = await getUserTemplates(client, owner, repo);
-  for (const file of templates) {
+  for (const file of defaultTemplates) {
     let content;
     if (userTemplates.includes(file)) {
       content = await getUserTemplate(client, owner, repo, file);
     } else {
       content = external_fs_.readFileSync(
-        __nccwpck_require__.ab + "templates/" + file,
+        __nccwpck_require__.ab + "zulipbot-action/" + actionName + '\\templates\\' + file,
         "utf8"
       );
     }
     const [name] = file.split(".md");
     const template = new Template(client, name, content);
-    client.templates.set(name, template);
+    templatesMap.set(name, template);
   }
 
-  return client;
-};
+  return templatesMap;
+}
 
 const getUserTemplates = async (client, owner, repo) => {
-  const templates_dir_path = core.getInput("templates-dir-path");
+  const templates_dir_path = (0,core.getInput)("templates-dir-path");
   if (!templates_dir_path) return [];
 
   const { status, data: userTemplates } = await client.repos.getContent({
@@ -182,7 +204,7 @@ const getUserTemplates = async (client, owner, repo) => {
 };
 
 const getUserTemplate = async (client, owner, repo, templateName) => {
-  const templates_dir_path = core.getInput("templates-dir-path");
+  const templates_dir_path = (0,core.getInput)("templates-dir-path");
   if (!templates_dir_path) return "";
 
   const template_file_path = templates_dir_path + "/" + templateName;
@@ -207,6 +229,22 @@ const getUserTemplate = async (client, owner, repo, templateName) => {
   return template_data;
 };
 
+// CONCATENATED MODULE: ./activity-action/activity/utils.js
+/**
+ * Retrieves all pages of data from a node-github method.
+ * @param {String} path Path of the method in the format "api.method".
+ * @param {Object} parameters Parameters to pass to the method.
+ * @return {Array} Array of all data entries.
+ */
+
+const utils_getAllPages = async (client, path, parameters) => {
+  const [api, method] = path.split(".");
+  const options = client[api][method].endpoint.merge(parameters);
+  const responses = await client.paginate(options);
+
+  return responses;
+};
+
 // CONCATENATED MODULE: ./activity-action/structures/ReferenceSearch.js
 
 /* eslint-disable array-element-newline */
@@ -220,7 +258,7 @@ const keywords = [
 /* eslint-enable array-element-newline */
 
 class ReferenceSearch {
-  constructor(client, pull, repo) {
+  constructor(client, pull, owner, repo) {
     /**
      * The client that instantiated this template
      * @type {Object}
@@ -243,13 +281,13 @@ class ReferenceSearch {
      * The name of the repository of the pull request this search applies to
      * @type {Object}
      */
-    this.repoName = repo.name;
+    this.repoName = repo;
 
     /**
      * The owner of the repository of the pull request this search applies to
      * @type {Object}
      */
-    this.repoOwner = repo.owner.login;
+    this.repoOwner = owner;
   }
 
   /**
@@ -270,7 +308,7 @@ class ReferenceSearch {
     let matches = [];
     strings.forEach(string => {
       const wordMatches = keywords.map(tense => {
-        const regex = new RegExp(`${tense}:? #([0-9]+)`, "i");
+        const regex = new RegExp(`${tense}:? *#([0-9]+)`, "i");
         const match = string.match(regex);
         return match ? match[1] : match;
       });
@@ -443,7 +481,7 @@ async function scrapePulls(client, pulls, owner, repo) {
     }
 
     // Find all the linked issues to the PR and its commits.
-    const references = new ReferenceSearch(client, pull, pull.base.repo);
+    const references = new ReferenceSearch(client, pull, owner, repo);
     const bodyRefs = await references.getBody();
     const commitRefs = await references.getCommits();
 
@@ -472,7 +510,7 @@ async function scrapePulls(client, pulls, owner, repo) {
     console.log(key, value);
   }
   // Bring in all open and assigned issues.
-  const issues = await getAllPages(client, "issues.listForRepo", {
+  const issues = await utils_getAllPages(client, "issues.listForRepo", {
     owner,
     repo,
     assignee: "*",
@@ -487,7 +525,7 @@ async function scrapePulls(client, pulls, owner, repo) {
 
 const run = async (client, owner, repo) => {
   // Bring in all open pull requests.
-  const pulls = await getAllPages(client, "pulls.list", {
+  const pulls = await utils_getAllPages(client, "pulls.list", {
     owner,
     repo,
   });
@@ -501,22 +539,36 @@ const run = async (client, owner, repo) => {
 
 
 
-const activity_action_run = async () => {
-  const client = await getClient();
 
-  const context = github.context;
-  const payload = context.payload;
+
+const activity_action_run = async () => {
+  const client = getClient();
+  console.log(client);
+
+  // Get bot's username
+  client.username = getClientLogin(client);
+  console.log("Client username: ", client.username);
+
+  // Get action's config
+  client.config = getActionConfig();
+
+  // const context = github.context;
+  const { owner, repo } = github.context.issue;
+
+  // Get templates
+  client.templates = getTemplates("activity-action", client, owner, repo);
+
+  const payload = github.context.payload;
   console.log(payload);
 
   if (
-    context.eventName === "issues" &&
-    client.config.get(issue_assigned_label)
+    github.context.eventName === "issues" &&
+    client.config.issue_assigned_label
   ) {
     if (payload.action === "assigned" || payload.action === "unassigned") {
       // Do something
     }
-  } else if (context.eventName === "schedule") {
-    const { owner, repo } = context.issue;
+  } else if (github.context.eventName === "schedule") {
     run(client, owner, repo);
   }
 
@@ -529,7 +581,7 @@ const activity_action_run = async () => {
 try {
   activity_action_run();
 } catch (error) {
-  core.setFailed(error.message);
+  (0,core.setFailed)(error.message);
 }
 
 
@@ -6477,6 +6529,6 @@ module.exports = require("zlib");;
 /******/ 	// module exports must be returned from runtime so entry inlining is disabled
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
-/******/ 	return __nccwpck_require__(392);
+/******/ 	return __nccwpck_require__(167);
 /******/ })()
 ;
