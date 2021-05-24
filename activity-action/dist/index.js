@@ -2,7 +2,7 @@ module.exports =
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 392:
+/***/ 48:
 /***/ ((__unused_webpack_module, __webpack_exports__, __nccwpck_require__) => {
 
 "use strict";
@@ -13,9 +13,70 @@ __nccwpck_require__.r(__webpack_exports__);
 var core = __nccwpck_require__(186);
 // EXTERNAL MODULE: ./node_modules/@actions/github/lib/github.js
 var github = __nccwpck_require__(438);
+// CONCATENATED MODULE: ./client_config/client.js
+
+
+
+const getClient = () => {
+  const token = core.getInput("token", { required: true });
+  const client = github.getOctokit("", { auth: token });
+
+  return client;
+};
+
+const getClientLogin = async (client) => {
+  const {
+    status,
+    data: { login },
+  } = await client.users.getAuthenticated();
+
+  if (status !== 200) {
+    throw new Error(
+      `Received unexpected API status code ${status} while requesting for bot's username.`
+    );
+  }
+
+  return login;
+};
+
+// CONCATENATED MODULE: ./activity-action/activity/getActionConfig.js
+
+
+function getActionConfig() {
+  const config = new Object();
+
+  config.issue_assigned_label = (0,core.getInput)("issue_assigned_label");
+  config.skip_issue_with_label = (0,core.getInput)("skip_issue_with_label");
+  config.skip_issue_with_pull_label = (0,core.getInput)("skip_issue_with_pull_label");
+  config.clear_closed_issue = (0,core.getInput)("clear_closed_issue") === "true";
+  config.days_until_warning = parseInt(
+    (0,core.getInput)("days_until_warning", { required: true })
+  );
+  config.days_until_unassign = parseInt(
+    (0,core.getInput)("days_until_unassign", { required: true })
+  );
+  config.assign_pull_to_reviewer =
+    (0,core.getInput)("assign_pull_to_reviewer") === "true";
+
+  console.log("Config:", config);
+
+  return config;
+}
+
 // EXTERNAL MODULE: external "fs"
 var external_fs_ = __nccwpck_require__(747);
-// CONCATENATED MODULE: ./activity-action/activity/utils.js
+// CONCATENATED MODULE: ./utils.js
+/**
+ * Sorts and removes duplicate elements from a given array.
+ *
+ * @param {Array} array Array to remove duplicates from.
+ * @return {Array} Sorted array containing only unique entries.
+ */
+
+const deduplicate = (array) => {
+  return Array.from(new Set(array)).sort();
+};
+
 /**
  * Retrieves all pages of data from a node-github method.
  * @param {String} path Path of the method in the format "api.method".
@@ -31,7 +92,7 @@ const getAllPages = async (client, path, parameters) => {
   return responses;
 };
 
-// CONCATENATED MODULE: ./activity-action/structures/Template.js
+// CONCATENATED MODULE: ./structures/Template.js
 
 
 class Template {
@@ -55,7 +116,7 @@ class Template {
     this.content = content;
   }
 
-   /**
+  /**
    * Finds comments generated from templates on a issue/pull request.
    *
    * @param {Object} repo Repository object of the PR/issue.
@@ -66,7 +127,7 @@ class Template {
     const method = "issues.listComments";
     const comments = await getAllPages(this.client, method, parameters);
 
-    const templateComments = comments.filter(comment => {
+    const templateComments = comments.filter((comment) => {
       // Use end of template comments to check if comment is from template
       const matched = comment.body.endsWith(`<!-- ${this.name} -->`);
       const fromClient = comment.user.login === this.client.username;
@@ -94,76 +155,37 @@ class Template {
   }
 }
 
-// CONCATENATED MODULE: ./activity-action/clientConfig.js
+// CONCATENATED MODULE: ./client_config/getTemplates.js
 
 
 
 
-
-const getClient = async () => {
-  // Get octokit
-  const token = core.getInput("token", { required: true });
-  const client = github.getOctokit("", { auth: token });
-
-  // Get bot's username
-  const {
-    status,
-    data: { login: botUsername },
-  } = await client.users.getAuthenticated();
-  if (status !== 200) {
-    throw new Error(
-      `Received unexpected API status code ${status} while looking for bot's username.`
-    );
-  }
-  client.username = botUsername;
-
-  const { owner, repo } = github.context.issue;
-
-  // Get all inputs
-  client.config = new Object();
-
-  client.config.issue_assigned_label = core.getInput("issue_assigned_label");
-  client.config.skip_issue_with_label = core.getInput("skip_issue_with_label");
-  client.config.skip_issue_with_pull_label = core.getInput(
-    "skip_issue_with_pull_label"
+async function getTemplates(client, owner, repo) {
+  const templatesMap = new Map();
+  const defaultTemplates = external_fs_.readdirSync(
+    `${__dirname}/../templates`
   );
-  client.config.clear_closed_issue =
-    core.getInput("clear_closed_issue") === "true";
-  client.config.days_until_warning = parseInt(
-    core.getInput("days_until_warning", { required: true })
-  );
-  client.config.days_until_unassign = parseInt(
-    core.getInput("days_until_unassign", { required: true })
-  );
-  client.config.assign_pull_to_reviewer =
-    core.getInput("assign_pull_to_reviewer") === "true";
-
-  console.log(client.config);
-
-  // Set bot's templates
-  client.templates = new Map();
-  const templates = external_fs_.readdirSync(__nccwpck_require__.ab + "templates");
   const userTemplates = await getUserTemplates(client, owner, repo);
-  for (const file of templates) {
+  for (const file of defaultTemplates) {
     let content;
     if (userTemplates.includes(file)) {
       content = await getUserTemplate(client, owner, repo, file);
     } else {
       content = external_fs_.readFileSync(
-        __nccwpck_require__.ab + "templates/" + file,
+        `${__dirname}/../templates/${file}`,
         "utf8"
       );
     }
     const [name] = file.split(".md");
     const template = new Template(client, name, content);
-    client.templates.set(name, template);
+    templatesMap.set(name, template);
   }
 
-  return client;
-};
+  return templatesMap;
+}
 
 const getUserTemplates = async (client, owner, repo) => {
-  const templates_dir_path = core.getInput("templates-dir-path");
+  const templates_dir_path = (0,core.getInput)("templates-dir-path");
   if (!templates_dir_path) return [];
 
   const { status, data: userTemplates } = await client.repos.getContent({
@@ -182,7 +204,7 @@ const getUserTemplates = async (client, owner, repo) => {
 };
 
 const getUserTemplate = async (client, owner, repo, templateName) => {
-  const templates_dir_path = core.getInput("templates-dir-path");
+  const templates_dir_path = (0,core.getInput)("templates-dir-path");
   if (!templates_dir_path) return "";
 
   const template_file_path = templates_dir_path + "/" + templateName;
@@ -207,7 +229,7 @@ const getUserTemplate = async (client, owner, repo, templateName) => {
   return template_data;
 };
 
-// CONCATENATED MODULE: ./activity-action/structures/ReferenceSearch.js
+// CONCATENATED MODULE: ./structures/ReferenceSearch.js
 
 /* eslint-disable array-element-newline */
 
@@ -220,7 +242,7 @@ const keywords = [
 /* eslint-enable array-element-newline */
 
 class ReferenceSearch {
-  constructor(client, pull, repo) {
+  constructor(client, pull, owner, repo) {
     /**
      * The client that instantiated this template
      * @type {Object}
@@ -243,13 +265,13 @@ class ReferenceSearch {
      * The name of the repository of the pull request this search applies to
      * @type {Object}
      */
-    this.repoName = repo.name;
+    this.repoName = repo;
 
     /**
      * The owner of the repository of the pull request this search applies to
      * @type {Object}
      */
-    this.repoOwner = repo.owner.login;
+    this.repoOwner = owner;
   }
 
   /**
@@ -290,7 +312,7 @@ class ReferenceSearch {
     const matchStatuses = await Promise.all(statusCheck);
     // remove strings that didn't contain any references
     const references = matchStatuses.filter(e => e);
-    console.log(references);
+    console.log("Referenced issues: ", references);
 
     return references;
   }
@@ -306,12 +328,13 @@ class ReferenceSearch {
     });
 
     const msgs = commits.data.map(c => c.commit.message);
-    console.log(msgs);
+    console.log("Commit messages:", msgs);
     const commitRefs = await this.find(msgs);
 
     return commitRefs;
   }
 }
+
 
 // CONCATENATED MODULE: ./activity-action/activity/scrapeInactiveIssues.js
 async function scrapeInactiveIssues(
@@ -321,9 +344,10 @@ async function scrapeInactiveIssues(
   owner,
   repo
 ) {
-  const warn_ms = client.config.days_until_warning * 86400000;
-  const abandon_ms = client.config.days_until_unassign * 86400000;
-  console.log(warn_ms, abandon_ms);
+  const warn_ms = (client.config.days_until_warning * 86400000) / 24;
+  const abandon_ms = (client.config.days_until_unassign * 86400000) / 24;
+  console.log("Warn ms:", warn_ms);
+  console.log("Abandon ms:", abandon_ms);
 
   for (const issue of issues) {
     const isPR = issue.pull_request;
@@ -358,11 +382,16 @@ async function scrapeInactiveIssues(
     const relevantWarningComment = commentsByTemplate.find((comment) => {
       // No progress was made after warning comment.
       const comment_ms = Date.parse(comment.created_at);
-      return comment_ms === time;
+
+      // Check for (+)(-)2sec as sometimes comment_ms may differ from
+      // issue last updated time by a sec or so.
+      return comment_ms >= time - 2000 && comment_ms <= time + 2000;
     });
 
-    console.log("comments:", commentsByTemplate, relevantWarningComment);
-    console.log("Issue updated: ", time, issue.updated_at);
+    console.log("\nCurrently on issue:", number);
+    console.log("Comments posted by activity action:", commentsByTemplate);
+    console.log("Relevant comment:", relevantWarningComment);
+    console.log("Issue last updated at: ", time, issue.updated_at);
 
     if (relevantWarningComment) {
       console.log(
@@ -429,28 +458,32 @@ async function scrapePulls(client, pulls, owner, repo) {
     let time = Date.parse(pull.updated_at);
     const number = pull.number;
 
+    console.log("Currently on PR: ", number);
+
     if (client.config.skip_issue_with_pull_label) {
       // Set time = Date.now() for the PR if it contains this
       // label so that the linked issue gets skipped
       // automatically.
-      console.log("hello");
+      console.log("Inside skip issue with pull label");
       const skip_linked_issue = pull.labels.find((label) => {
         return label.name === client.config.skip_issue_with_pull_label;
       });
 
       if (skip_linked_issue) time = Date.now();
-      console.log(skip_linked_issue);
+      console.log("Pull Label for skipping issue:", skip_linked_issue);
     }
 
     // Find all the linked issues to the PR and its commits.
-    const references = new ReferenceSearch(client, pull, pull.base.repo);
+    const references = new ReferenceSearch(client, pull, owner, repo);
     const bodyRefs = await references.getBody();
     const commitRefs = await references.getCommits();
 
     if (bodyRefs.length || commitRefs.length) {
       const references = commitRefs.concat(bodyRefs);
+
       // sort and remove duplicate references
-      const refs = Array.from(new Set(references)).sort();
+      const refs = deduplicate(references);
+
       refs.forEach((ref) => {
         const issue_tag = `${repo}/${ref}`;
         if (referenceList.has(issue_tag)) {
@@ -468,6 +501,7 @@ async function scrapePulls(client, pulls, owner, repo) {
   // linked PR with the time at which its most acive was last
   // updated.
 
+  console.log("All issue references found...");
   for (const [key, value] of referenceList) {
     console.log(key, value);
   }
@@ -501,36 +535,44 @@ const run = async (client, owner, repo) => {
 
 
 
+
+
 const activity_action_run = async () => {
-  const client = await getClient();
+  try {
+    const client = getClient();
 
-  const context = github.context;
-  const payload = context.payload;
-  console.log(payload);
+    // Get bot's username
+    client.username = await getClientLogin(client);
 
-  if (
-    context.eventName === "issues" &&
-    client.config.get(issue_assigned_label)
-  ) {
-    if (payload.action === "assigned" || payload.action === "unassigned") {
-      // Do something
+    // Get action's config
+    client.config = getActionConfig();
+
+    const { owner, repo } = github.context.issue;
+
+    // Get templates
+    client.templates = await getTemplates(client, owner, repo);
+
+    const payload = github.context.payload;
+    console.log("Payload:", payload);
+
+    if (github.context.eventName === "issues" && client.config.issue_assigned_label) {
+      if (payload.action === "assigned" || payload.action === "unassigned") {
+        // Do something
+      }
+    } else if (github.context.eventName === "schedule") {
+      run(client, owner, repo);
     }
-  } else if (context.eventName === "schedule") {
-    const { owner, repo } = context.issue;
-    run(client, owner, repo);
-  }
 
-  // if (payload.action === "labeled" || payload.action === "unlabeled") {
-  //   areaLabel.run(client, payload);
-  // }
+    // if (payload.action === "labeled" || payload.action === "unlabeled") {
+    //   areaLabel.run(client, payload);
+    // }
+  } catch (error) {
+    (0,core.setFailed)(error.message);
+  }
 };
 
 // Run the script
-try {
-  activity_action_run();
-} catch (error) {
-  core.setFailed(error.message);
-}
+activity_action_run();
 
 
 /***/ }),
@@ -6477,6 +6519,6 @@ module.exports = require("zlib");;
 /******/ 	// module exports must be returned from runtime so entry inlining is disabled
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
-/******/ 	return __nccwpck_require__(392);
+/******/ 	return __nccwpck_require__(48);
 /******/ })()
 ;

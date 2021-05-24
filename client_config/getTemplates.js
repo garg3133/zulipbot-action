@@ -2,10 +2,10 @@ import { getInput } from "@actions/core";
 import * as fs from "fs";
 import Template from "../structures/Template";
 
-export default async function getTemplates(actionName, client, owner, repo) {
+export default async function getTemplates(client, owner, repo) {
   const templatesMap = new Map();
   const defaultTemplates = fs.readdirSync(
-    `${__dirname}/../${actionName}/templates`
+    `${__dirname}/../templates`
   );
   const userTemplates = await getUserTemplates(client, owner, repo);
   for (const file of defaultTemplates) {
@@ -14,7 +14,7 @@ export default async function getTemplates(actionName, client, owner, repo) {
       content = await getUserTemplate(client, owner, repo, file);
     } else {
       content = fs.readFileSync(
-        `${__dirname}/../${actionName}/templates/${file}`,
+        `${__dirname}/../templates/${file}`,
         "utf8"
       );
     }

@@ -80,7 +80,7 @@ export default class ReferenceSearch {
     const matchStatuses = await Promise.all(statusCheck);
     // remove strings that didn't contain any references
     const references = matchStatuses.filter(e => e);
-    console.log(references);
+    console.log("Referenced issues: ", references);
 
     return references;
   }
@@ -96,7 +96,7 @@ export default class ReferenceSearch {
     });
 
     const msgs = commits.data.map(c => c.commit.message);
-    console.log(msgs);
+    console.log("Commit messages:", msgs);
     const commitRefs = await this.find(msgs);
 
     return commitRefs;

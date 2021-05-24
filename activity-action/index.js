@@ -1,35 +1,43 @@
-import * as core from "@actions/core";
-import * as github from "@actions/github";
-import * as config from "./clientConfig";
+import { setFailed } from "@actions/core";
+import { context } from "@actions/github";
+import { getClient, getClientLogin } from "../client_config/client";
+import getActionConfig from "./activity/getActionConfig";
+import getTemplates from "../client_config/getTemplates";
 import * as activity from "./activity/activity";
 
 const run = async () => {
-  const client = await config.getClient();
+  try {
+    const client = getClient();
 
-  const context = github.context;
-  const payload = context.payload;
-  console.log(payload);
+    // Get bot's username
+    client.username = await getClientLogin(client);
 
-  if (
-    context.eventName === "issues" &&
-    client.config.get(issue_assigned_label)
-  ) {
-    if (payload.action === "assigned" || payload.action === "unassigned") {
-      // Do something
-    }
-  } else if (context.eventName === "schedule") {
+    // Get action's config
+    client.config = getActionConfig();
+
     const { owner, repo } = context.issue;
-    activity.run(client, owner, repo);
-  }
 
-  // if (payload.action === "labeled" || payload.action === "unlabeled") {
-  //   areaLabel.run(client, payload);
-  // }
+    // Get templates
+    client.templates = await getTemplates(client, owner, repo);
+
+    const payload = context.payload;
+    console.log("Payload:", payload);
+
+    if (context.eventName === "issues" && client.config.issue_assigned_label) {
+      if (payload.action === "assigned" || payload.action === "unassigned") {
+        // Do something
+      }
+    } else if (context.eventName === "schedule") {
+      activity.run(client, owner, repo);
+    }
+
+    // if (payload.action === "labeled" || payload.action === "unlabeled") {
+    //   areaLabel.run(client, payload);
+    // }
+  } catch (error) {
+    setFailed(error.message);
+  }
 };
 
 // Run the script
-try {
-  run();
-} catch (error) {
-  core.setFailed(error.message);
-}
+run();
