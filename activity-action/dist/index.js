@@ -160,10 +160,10 @@ class Template {
 
 
 
-async function getTemplates(actionName, client, owner, repo) {
+async function getTemplates(client, owner, repo) {
   const templatesMap = new Map();
   const defaultTemplates = external_fs_.readdirSync(
-    `${__dirname}/../${actionName}/templates`
+    `${__dirname}/../templates`
   );
   const userTemplates = await getUserTemplates(client, owner, repo);
   for (const file of defaultTemplates) {
@@ -172,7 +172,7 @@ async function getTemplates(actionName, client, owner, repo) {
       content = await getUserTemplate(client, owner, repo, file);
     } else {
       content = external_fs_.readFileSync(
-        __nccwpck_require__.ab + "zulipbot-action/" + actionName + '\\templates\\' + file,
+        `${__dirname}/../templates/${file}`,
         "utf8"
       );
     }
@@ -540,16 +540,10 @@ const activity_action_run = async () => {
     // Get action's config
     client.config = getActionConfig();
 
-    // const context = github.context;
     const { owner, repo } = github.context.issue;
 
     // Get templates
-    client.templates = await getTemplates(
-      "activity-action",
-      client,
-      owner,
-      repo
-    );
+    client.templates = await getTemplates(client, owner, repo);
 
     const payload = github.context.payload;
     console.log(payload);
@@ -569,7 +563,6 @@ const activity_action_run = async () => {
     (0,core.setFailed)(error.message);
   }
 };
-
 
 // Run the script
 activity_action_run();

@@ -15,16 +15,10 @@ const run = async () => {
     // Get action's config
     client.config = getActionConfig();
 
-    // const context = github.context;
     const { owner, repo } = context.issue;
 
     // Get templates
-    client.templates = await getTemplates(
-      "activity-action",
-      client,
-      owner,
-      repo
-    );
+    client.templates = await getTemplates(client, owner, repo);
 
     const payload = context.payload;
     console.log(payload);
@@ -44,7 +38,6 @@ const run = async () => {
     setFailed(error.message);
   }
 };
-
 
 // Run the script
 run();
