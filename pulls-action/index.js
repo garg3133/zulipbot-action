@@ -1,13 +1,12 @@
-import * as core from "@actions/core";
-import * as github from "@actions/github";
+import { setFailed } from "@actions/core";
+import { context } from "@actions/github";
 import * as clientConfig from "./clientConfig";
-import * as pulls from "./pulls/index"
-import * as workflow_run from "./workflow_run/index";
+import * as pulls from "./pulls/pulls"
+import * as workflow_run from "./workflow_run/workflow_run";
 
 const run = async () => {
   const client = await clientConfig.getClient();
 
-  const context = github.context;
   const payload = context.payload;
 
   const { owner, repo } = context.issue;
@@ -27,5 +26,5 @@ const run = async () => {
 try {
   run();
 } catch (error) {
-  core.setFailed(error.message);
+  setFailed(error.message);
 }
