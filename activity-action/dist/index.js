@@ -2,7 +2,7 @@ module.exports =
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 48:
+/***/ 247:
 /***/ ((__unused_webpack_module, __webpack_exports__, __nccwpck_require__) => {
 
 "use strict";
@@ -39,7 +39,7 @@ const getClientLogin = async (client) => {
   return login;
 };
 
-// CONCATENATED MODULE: ./activity-action/activity/getActionConfig.js
+// CONCATENATED MODULE: ./activity-action/config/getActionConfig.js
 
 
 function getActionConfig() {
@@ -292,7 +292,7 @@ class ReferenceSearch {
     let matches = [];
     strings.forEach(string => {
       const wordMatches = keywords.map(tense => {
-        const regex = new RegExp(`${tense}:? #([0-9]+)`, "i");
+        const regex = new RegExp(`${tense}:? +#([0-9]+)`, "i");
         const match = string.match(regex);
         return match ? match[1] : match;
       });
@@ -6519,6 +6519,6 @@ module.exports = require("zlib");;
 /******/ 	// module exports must be returned from runtime so entry inlining is disabled
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
-/******/ 	return __nccwpck_require__(48);
+/******/ 	return __nccwpck_require__(247);
 /******/ })()
 ;

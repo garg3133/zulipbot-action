@@ -1,7 +1,7 @@
 import { setFailed } from "@actions/core";
 import { context } from "@actions/github";
 import { getClient, getClientLogin } from "../client_config/client";
-import getActionConfig from "./activity/getActionConfig";
+import getActionConfig from "./config/getActionConfig";
 import getTemplates from "../client_config/getTemplates";
 import * as activity from "./activity/activity";
 
