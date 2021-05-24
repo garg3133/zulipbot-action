@@ -8427,7 +8427,7 @@ function wrappy (fn, cb) {
 
 /***/ }),
 
-/***/ 2668:
+/***/ 6060:
 /***/ ((__unused_webpack_module, __webpack_exports__, __nccwpck_require__) => {
 
 "use strict";
@@ -8438,6 +8438,32 @@ __nccwpck_require__.r(__webpack_exports__);
 var core = __nccwpck_require__(2186);
 // EXTERNAL MODULE: ./node_modules/@actions/github/lib/github.js
 var github = __nccwpck_require__(5438);
+// CONCATENATED MODULE: ./client_config/client.js
+
+
+
+const getClient = () => {
+  const token = core.getInput("token", { required: true });
+  const client = github.getOctokit("", { auth: token });
+
+  return client;
+};
+
+const getClientLogin = async (client) => {
+  const {
+    status,
+    data: { login },
+  } = await client.users.getAuthenticated();
+
+  if (status !== 200) {
+    throw new Error(
+      `Received unexpected API status code ${status} while requesting for bot's username.`
+    );
+  }
+
+  return login;
+};
+
 // CONCATENATED MODULE: ./node_modules/js-yaml/dist/js-yaml.mjs
 
 /*! js-yaml 4.1.0 https://github.com/nodeca/js-yaml @license MIT */
@@ -12291,21 +12317,12 @@ var jsYaml = {
 /* harmony default export */ const js_yaml = ((/* unused pure expression or super */ null && (jsYaml)));
 
 
-// CONCATENATED MODULE: ./pulls-action/clientConfig.js
+// CONCATENATED MODULE: ./client_config/getUserConfig.js
 
 
 
-
-const getClient = async () => {
-  // Get octokit
-  const token = core.getInput("token", { required: true });
-  const client = github.getOctokit("", { auth: token });
-
-  return client;
-};
-
-const getActionConfig = async (client, owner, repo) => {
-  const config_file_path = core.getInput('config-file-path');
+async function getUserConfig(client, owner, repo) {
+  const config_file_path = (0,core.getInput)('config-file-path');
 
   try {
     const {status, data: {content: config_data_encoded}} = await client.repos.getContent({
@@ -12328,11 +12345,25 @@ const getActionConfig = async (client, owner, repo) => {
     return config_data;
 
   } catch (error) {
-    core.setFailed(error.message);
+    (0,core.setFailed)(error.message);
   }
 }
 
-// CONCATENATED MODULE: ./pulls-action/pulls/utils.js
+
+// EXTERNAL MODULE: external "fs"
+var external_fs_ = __nccwpck_require__(5747);
+// CONCATENATED MODULE: ./utils.js
+/**
+ * Sorts and removes duplicate elements from a given array.
+ *
+ * @param {Array} array Array to remove duplicates from.
+ * @return {Array} Sorted array containing only unique entries.
+ */
+
+const deduplicate = (array) => {
+  return Array.from(new Set(array)).sort();
+};
+
 /**
  * Retrieves all pages of data from a node-github method.
  * @param {String} path Path of the method in the format "api.method".
@@ -12347,6 +12378,7 @@ const getAllPages = async (client, path, parameters) => {
 
   return responses;
 };
+
 // CONCATENATED MODULE: ./pulls-action/pulls/getNewSizeLabel.js
 
 
@@ -12380,19 +12412,15 @@ async function getNewSizeLabel(client, number, owner, repo) {
   }
 
   return newSizeLabel;
-};
+}
 
-// EXTERNAL MODULE: external "fs"
-var external_fs_ = __nccwpck_require__(5747);
 // CONCATENATED MODULE: ./pulls-action/pulls/updateSizeLabel.js
 
 
 
 
-async function updateSizeLabel(client, payload) {
+async function updateSizeLabel(client, payload, owner, repo) {
   try {
-    const repo = payload.repository.name;
-    const owner = payload.repository.owner.login;
     const number = payload.pull_request.number;
 
     const pullLabels = payload.pull_request.labels.map((label) => label.name);
@@ -12404,7 +12432,7 @@ async function updateSizeLabel(client, payload) {
 
     const updatedSizeLabel = await getNewSizeLabel(client, number, owner, repo);
 
-    // Create an artifact and save it.
+    // Create an artifact
     const artifactContent = {
       number: number,
     };
@@ -12413,7 +12441,7 @@ async function updateSizeLabel(client, payload) {
       artifactContent.action = "sizeLabel";
       artifactContent.add = updatedSizeLabel;
 
-      const oldSizeLabel = pullLabels.filter(label => {
+      const oldSizeLabel = pullLabels.filter((label) => {
         return Object.keys(configSizeLabels).includes(label);
       });
 
@@ -12422,26 +12450,26 @@ async function updateSizeLabel(client, payload) {
       artifactContent.action = "none";
     }
 
+    // Save artifact
     const artifactContentJson = JSON.stringify(artifactContent);
 
-    external_fs_.writeFile('artifact.json', artifactContentJson, 'utf-8', (err) => {
+    external_fs_.writeFile("artifact.json", artifactContentJson, "utf-8", (err) => {
       if (err) throw err;
-      console.log('Artifact saved!');
+      console.log("Artifact saved!");
     });
-
   } catch (error) {
-      (0,core.setFailed)(error.message);
+    (0,core.setFailed)(error.message);
   }
-};
+}
 
-// CONCATENATED MODULE: ./pulls-action/pulls/index.js
+// CONCATENATED MODULE: ./pulls-action/pulls/pulls.js
 
 
-const run = async (client, payload) => {
+const run = async (client, payload, owner, repo) => {
   const action = payload.action;
 
   if (client.config.size_labels && ["opened", "synchronize"].includes(action)) {
-    updateSizeLabel(client, payload);
+    updateSizeLabel(client, payload, owner, repo);
   }
 };
 
@@ -12492,7 +12520,7 @@ var adm_zip = __nccwpck_require__(6761);
     (0,core.setFailed)(error.message);
   }
 }
-// CONCATENATED MODULE: ./pulls-action/workflow_run/index.js
+// CONCATENATED MODULE: ./pulls-action/workflow_run/workflow_run.js
 
 
 
@@ -12529,31 +12557,29 @@ const workflow_run_run = async (client, payload, owner, repo) => {
 
 
 
+
 const pulls_action_run = async () => {
-  const client = await getClient();
+  try {
+    const client = getClient();
 
-  const context = github.context;
-  const payload = context.payload;
+    const { owner, repo } = github.context.issue;
+    const payload = github.context.payload;
 
-  const { owner, repo } = context.issue;
+    if (github.context.eventName === "pull_request") {
+      // Get user configuration
+      client.config = await getUserConfig(client, owner, repo);
 
-  if (context.eventName === "pull_request") {
-    // Get action's configuration
-    client.config = await getActionConfig(client, owner, repo);
-
-    run(client, payload);
-  } else if (context.eventName === "workflow_run") {
-    workflow_run_run(client, payload, owner, repo);
+      run(client, payload, owner, repo);
+    } else if (github.context.eventName === "workflow_run") {
+      workflow_run_run(client, payload, owner, repo);
+    }
+  } catch (error) {
+    (0,core.setFailed)(error.message);
   }
-
 };
 
 // Run the script
-try {
-  pulls_action_run();
-} catch (error) {
-  core.setFailed(error.message);
-}
+pulls_action_run();
 
 
 /***/ }),
@@ -12735,6 +12761,6 @@ module.exports = require("zlib");;
 /******/ 	// module exports must be returned from runtime so entry inlining is disabled
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
-/******/ 	return __nccwpck_require__(2668);
+/******/ 	return __nccwpck_require__(6060);
 /******/ })()
 ;
