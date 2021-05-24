@@ -60,7 +60,7 @@ export default class ReferenceSearch {
     let matches = [];
     strings.forEach(string => {
       const wordMatches = keywords.map(tense => {
-        const regex = new RegExp(`${tense}:? #([0-9]+)`, "i");
+        const regex = new RegExp(`${tense}:? +#([0-9]+)`, "i");
         const match = string.match(regex);
         return match ? match[1] : match;
       });
