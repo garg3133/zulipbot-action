@@ -58,7 +58,7 @@ function getActionConfig() {
   config.assign_pull_to_reviewer =
     (0,core.getInput)("assign_pull_to_reviewer") === "true";
 
-  console.log(config);
+  console.log("Config:", config);
 
   return config;
 }
@@ -312,7 +312,7 @@ class ReferenceSearch {
     const matchStatuses = await Promise.all(statusCheck);
     // remove strings that didn't contain any references
     const references = matchStatuses.filter(e => e);
-    console.log(references);
+    console.log("Referenced issues: ", references);
 
     return references;
   }
@@ -328,7 +328,7 @@ class ReferenceSearch {
     });
 
     const msgs = commits.data.map(c => c.commit.message);
-    console.log(msgs);
+    console.log("Commit messages:", msgs);
     const commitRefs = await this.find(msgs);
 
     return commitRefs;
@@ -346,7 +346,8 @@ async function scrapeInactiveIssues(
 ) {
   const warn_ms = client.config.days_until_warning * 86400000 / 24;
   const abandon_ms = client.config.days_until_unassign * 86400000 / 24;
-  console.log(warn_ms, abandon_ms);
+  console.log("Warn ms:", warn_ms);
+  console.log("Abandon ms:", abandon_ms);
 
   for (const issue of issues) {
     const isPR = issue.pull_request;
@@ -384,8 +385,10 @@ async function scrapeInactiveIssues(
       return comment_ms === time;
     });
 
-    console.log("comments:", commentsByTemplate, relevantWarningComment);
-    console.log("Issue updated: ", time, issue.updated_at);
+    console.log("\nCurrently on issue:", number);
+    console.log("Comments posted by activity action:", commentsByTemplate);
+    console.log("Relevant comment:", relevantWarningComment);
+    console.log("Issue last updated at: ", time, issue.updated_at);
 
     if (relevantWarningComment) {
       console.log(
@@ -464,7 +467,7 @@ async function scrapePulls(client, pulls, owner, repo) {
       });
 
       if (skip_linked_issue) time = Date.now();
-      console.log(skip_linked_issue);
+      console.log("Pull Label for skipping issue:", skip_linked_issue);
     }
 
     // Find all the linked issues to the PR and its commits.
@@ -495,6 +498,7 @@ async function scrapePulls(client, pulls, owner, repo) {
   // linked PR with the time at which its most acive was last
   // updated.
 
+  console.log("All issue references found...");
   for (const [key, value] of referenceList) {
     console.log(key, value);
   }
@@ -546,7 +550,7 @@ const activity_action_run = async () => {
     client.templates = await getTemplates(client, owner, repo);
 
     const payload = github.context.payload;
-    console.log(payload);
+    console.log("Payload:", payload);
 
     if (github.context.eventName === "issues" && client.config.issue_assigned_label) {
       if (payload.action === "assigned" || payload.action === "unassigned") {

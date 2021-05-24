@@ -16,7 +16,7 @@ export default function getActionConfig() {
   config.assign_pull_to_reviewer =
     getInput("assign_pull_to_reviewer") === "true";
 
-  console.log(config);
+  console.log("Config:", config);
 
   return config;
 }

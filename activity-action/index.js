@@ -21,7 +21,7 @@ const run = async () => {
     client.templates = await getTemplates(client, owner, repo);
 
     const payload = context.payload;
-    console.log(payload);
+    console.log("Payload:", payload);
 
     if (context.eventName === "issues" && client.config.issue_assigned_label) {
       if (payload.action === "assigned" || payload.action === "unassigned") {

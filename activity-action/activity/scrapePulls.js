@@ -24,7 +24,7 @@ export default async function scrapePulls(client, pulls, owner, repo) {
       });
 
       if (skip_linked_issue) time = Date.now();
-      console.log(skip_linked_issue);
+      console.log("Pull Label for skipping issue:", skip_linked_issue);
     }
 
     // Find all the linked issues to the PR and its commits.
@@ -55,6 +55,7 @@ export default async function scrapePulls(client, pulls, owner, repo) {
   // linked PR with the time at which its most acive was last
   // updated.
 
+  console.log("All issue references found...");
   for (const [key, value] of referenceList) {
     console.log(key, value);
   }
