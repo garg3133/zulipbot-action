@@ -1,10 +1,10 @@
-import * as utils from "./utils";
+import { getAllPages } from "../../utils";
 
 export default async function getNewSizeLabel(client, number, owner, repo) {
   const configSizeLabels = client.config.size_labels.labels;
   const excludedFiles = client.config.size_labels.exclude || [];
 
-  const files = await utils.getAllPages(client, "pulls.listFiles", {
+  const files = await getAllPages(client, "pulls.listFiles", {
     owner,
     repo,
     pull_number: number,
@@ -30,4 +30,4 @@ export default async function getNewSizeLabel(client, number, owner, repo) {
   }
 
   return newSizeLabel;
-};
+}
