@@ -5,8 +5,8 @@ export default async function scrapeInactiveIssues(
   owner,
   repo
 ) {
-  const warn_ms = (client.config.days_until_warning * 86400000) / 24;
-  const abandon_ms = (client.config.days_until_unassign * 86400000) / 24;
+  const warn_ms = client.config.days_until_warning * 86400000;
+  const abandon_ms = client.config.days_until_unassign * 86400000;
   console.log("Warn ms:", warn_ms);
   console.log("Abandon ms:", abandon_ms);
 
