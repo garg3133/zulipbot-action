@@ -16,7 +16,7 @@ const run = async () => {
       // Get user configuration
       client.config = await getUserConfig(client, owner, repo);
 
-      pulls.run(client, payload);
+      pulls.run(client, payload, owner, repo);
     } else if (context.eventName === "workflow_run") {
       workflow_run.run(client, payload, owner, repo);
     }

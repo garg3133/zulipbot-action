@@ -1,11 +1,9 @@
-import {setFailed} from "@actions/core";
-import getNewSizeLabel from "./getNewSizeLabel";
+import { setFailed } from "@actions/core";
 import * as fs from "fs";
+import getNewSizeLabel from "./getNewSizeLabel";
 
-export default async function updateSizeLabel(client, payload) {
+export default async function updateSizeLabel(client, payload, owner, repo) {
   try {
-    const repo = payload.repository.name;
-    const owner = payload.repository.owner.login;
     const number = payload.pull_request.number;
 
     const pullLabels = payload.pull_request.labels.map((label) => label.name);
@@ -17,7 +15,7 @@ export default async function updateSizeLabel(client, payload) {
 
     const updatedSizeLabel = await getNewSizeLabel(client, number, owner, repo);
 
-    // Create an artifact and save it.
+    // Create an artifact
     const artifactContent = {
       number: number,
     };
@@ -26,7 +24,7 @@ export default async function updateSizeLabel(client, payload) {
       artifactContent.action = "sizeLabel";
       artifactContent.add = updatedSizeLabel;
 
-      const oldSizeLabel = pullLabels.filter(label => {
+      const oldSizeLabel = pullLabels.filter((label) => {
         return Object.keys(configSizeLabels).includes(label);
       });
 
@@ -35,14 +33,14 @@ export default async function updateSizeLabel(client, payload) {
       artifactContent.action = "none";
     }
 
+    // Save artifact
     const artifactContentJson = JSON.stringify(artifactContent);
 
-    fs.writeFile('artifact.json', artifactContentJson, 'utf-8', (err) => {
+    fs.writeFile("artifact.json", artifactContentJson, "utf-8", (err) => {
       if (err) throw err;
-      console.log('Artifact saved!');
+      console.log("Artifact saved!");
     });
-
   } catch (error) {
-      setFailed(error.message);
+    setFailed(error.message);
   }
-};
+}
