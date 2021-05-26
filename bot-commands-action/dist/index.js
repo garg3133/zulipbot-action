@@ -3899,6 +3899,14 @@ var jsYaml = {
 async function getUserConfig(client, owner, repo) {
   const config_file_path = (0,core.getInput)("config-file-path");
 
+  const path_split = config_file_path.split(".");
+  const file_ext = path_split[path_split.length - 1];
+  if (!file_ext.match(/^y[a]?ml$/i)) {
+    throw new Error(
+      "Please provide path to a YAML config file in your workflow."
+    );
+  }
+
   const {
     status,
     data: { content: config_data_encoded },
@@ -3910,7 +3918,7 @@ async function getUserConfig(client, owner, repo) {
 
   if (status !== 200) {
     throw new Error(
-      `Received unexpected API status code while requesting config ${status}`
+      `Received unexpected API status code while requesting config: ${status}`
     );
   }
 
@@ -3922,6 +3930,7 @@ async function getUserConfig(client, owner, repo) {
     config_data_encoded,
     "base64"
   ).toString("utf-8");
+
   const config_data = load(config_data_string);
 
   return config_data;
@@ -4137,6 +4146,9 @@ const getUserTemplates = async (client, owner, repo) => {
     repo,
     path: templates_dir_path,
   });
+
+  console.log(status, userTemplates);
+
   if (status !== 200) {
     throw new Error(
       `Received unexpected API status code while reqeusting templates: ${status}`
@@ -4225,9 +4237,11 @@ const bot_commands_action_run = async () => {
 
     // Get user configuration
     client.config = await getUserConfig(client, owner, repo);
+    console.log(client.config);
 
     // Get supported commands
     client.commands = getBotCommands();
+    console.log(client.commands);
 
     // Get templates
     client.templates = await getTemplates(client, owner, repo);
