@@ -4107,20 +4107,19 @@ class Template {
 
 async function getTemplates(client, owner, repo) {
   const templatesMap = new Map();
-  const defaultTemplates = external_fs_.readdirSync(
-    `${__dirname}/../templates`
-  );
+
+  const defaultTemplates = external_fs_.readdirSync(`${__dirname}/../templates`);
   const userTemplates = await getUserTemplates(client, owner, repo);
+
   for (const file of defaultTemplates) {
     let content;
+
     if (userTemplates.includes(file)) {
       content = await getUserTemplate(client, owner, repo, file);
     } else {
-      content = external_fs_.readFileSync(
-        `${__dirname}/../templates/${file}`,
-        "utf8"
-      );
+      content = external_fs_.readFileSync(`${__dirname}/../templates/${file}`, "utf8");
     }
+
     const [name] = file.split(".md");
     const template = new Template(client, name, content);
     templatesMap.set(name, template);
@@ -4140,11 +4139,12 @@ const getUserTemplates = async (client, owner, repo) => {
   });
   if (status !== 200) {
     throw new Error(
-      `Received unexpected API status code while requsting templates ${status}`
+      `Received unexpected API status code while reqeusting templates: ${status}`
     );
   }
 
   const userTemplatesNameArray = userTemplates.map((template) => template.name);
+
   return userTemplatesNameArray;
 };
 
