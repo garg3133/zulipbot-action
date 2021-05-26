@@ -10,7 +10,7 @@ export const run = async (client, payload, args, owner, repo) => {
   const number = payload.issue.number;
   const commenter = payload.comment.user.login;
   const assignees = payload.issue.assignees;
-  const limit = client.config.issue_assign.max_issue_assignees;
+  const limit = client.config.features.claim.max_assignees;
 
   // Check if the issue is already assigned to the commenter.
   if (assignees.find((assignee) => assignee.login === commenter)) {
