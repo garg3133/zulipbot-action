@@ -4186,7 +4186,7 @@ function parseComment(client, comment) {
 
   parsed.forEach((command) => {
     const codeBlocks = [`\`\`\`\r\n${command}\r\n\`\`\``, `\`${command}\``];
-    if (codeBlocks.some((block) => body.includes(block))) return;
+    if (codeBlocks.some((block) => commentBody.includes(block))) return;
 
     const [, keyword] = command.replace(/\s+/, " ").split(" ");
     const args = command.replace(/\s+/, " ").split(" ").slice(2).join(" ");
@@ -4213,6 +4213,8 @@ const bot_commands_action_run = async () => {
     if (github.context.eventName !== "issue_comment") return;
 
     const client = getClient();
+
+    // Use promise.all() below??
 
     // Get bot's username
     client.username = await getClientLogin(client);

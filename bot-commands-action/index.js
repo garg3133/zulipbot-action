@@ -13,6 +13,8 @@ const run = async () => {
 
     const client = getClient();
 
+    // Use promise.all() below??
+
     // Get bot's username
     client.username = await getClientLogin(client);
 
