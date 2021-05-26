@@ -3897,33 +3897,35 @@ var jsYaml = {
 
 
 async function getUserConfig(client, owner, repo) {
-  const config_file_path = (0,core.getInput)('config-file-path');
+  const config_file_path = (0,core.getInput)("config-file-path");
 
-  try {
-    const {status, data: {content: config_data_encoded}} = await client.repos.getContent({
-      owner,
-      repo,
-      path: config_file_path
-    });
+  const {
+    status,
+    data: { content: config_data_encoded },
+  } = await client.repos.getContent({
+    owner,
+    repo,
+    path: config_file_path,
+  });
 
-    if (status !== 200) {
-      throw new Error(`Received unexpected API status code while requsting config ${status}`);
-    }
-
-    if (!config_data_encoded) {
-      throw new Error('Configuration file not found.')
-    }
-
-    const config_data_string = Buffer.from(config_data_encoded, 'base64').toString('utf-8');
-    const config_data = load(config_data_string);
-
-    return config_data;
-
-  } catch (error) {
-    (0,core.setFailed)(error.message);
+  if (status !== 200) {
+    throw new Error(
+      `Received unexpected API status code while requesting config ${status}`
+    );
   }
-}
 
+  if (!config_data_encoded) {
+    throw new Error("Configuration file not found.");
+  }
+
+  const config_data_string = Buffer.from(
+    config_data_encoded,
+    "base64"
+  ).toString("utf-8");
+  const config_data = load(config_data_string);
+
+  return config_data;
+}
 
 // CONCATENATED MODULE: ./bot-commands-action/commands/claim/addAssignee.js
 async function addAssignee(
