@@ -26,8 +26,8 @@ export default async function getTemplates(client, owner, repo) {
 }
 
 const getUserTemplates = async (client, owner, repo) => {
-  const templates_dir_path = getInput("templates-dir-path");
-  if (!templates_dir_path) return [];
+  const templatesDirPath = getInput("templates-dir-path");
+  if (!templatesDirPath) return [];
 
   let response;
 
@@ -35,7 +35,7 @@ const getUserTemplates = async (client, owner, repo) => {
     response = await client.repos.getContent({
       owner,
       repo,
-      path: templates_dir_path,
+      path: templatesDirPath,
     });
   } catch (error) {
     if (error.status === 404) {
@@ -65,8 +65,8 @@ const getUserTemplates = async (client, owner, repo) => {
 };
 
 const getUserTemplate = async (client, owner, repo, templateName) => {
-  const templates_dir_path = getInput("templates-dir-path");
-  const template_file_path = templates_dir_path + "/" + templateName;
+  const templatesDirPath = getInput("templates-dir-path");
+  const templateFilePath = templatesDirPath + "/" + templateName;
 
   let response;
 
@@ -74,7 +74,7 @@ const getUserTemplate = async (client, owner, repo, templateName) => {
     response = await client.repos.getContent({
       owner,
       repo,
-      path: template_file_path,
+      path: templateFilePath,
     });
   } catch (error) {
     if (error.status === 404) {
@@ -85,16 +85,16 @@ const getUserTemplate = async (client, owner, repo, templateName) => {
       );
     }
   }
-  const template_data_encoded = response.data.content;
+  const templateDataEncoded = response.data.content;
 
-  if (!template_data_encoded) {
+  if (!templateDataEncoded) {
     throw new Error(
       `Unable to read the contents of the template ${templateName}.`
     );
   }
 
-  const template_data = Buffer.from(template_data_encoded, "base64").toString(
+  const templateData = Buffer.from(templateDataEncoded, "base64").toString(
     "utf-8"
   );
-  return template_data;
+  return templateData;
 };
