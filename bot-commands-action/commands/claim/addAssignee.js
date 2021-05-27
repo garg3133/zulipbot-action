@@ -12,9 +12,8 @@ export default async function addAssignee(
     assignees: [commenter],
   });
 
-  console.log(response.data.assignees);
-  // assignees === commenter ??
-  if (response.data.assignees.length) return;
+  const assignees = response.data.assignees.map((assignee) => assignee.login);
+  if (assignees.includes(commenter)) return;
 
   const error = "**ERROR:** Issue claiming failed (no assignee was added).";
 
