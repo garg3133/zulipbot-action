@@ -3924,7 +3924,7 @@ async function getUserConfig(client, owner, repo) {
       throw new Error("Configuration file not found.");
     } else {
       throw new Error(
-        `Received unexpected API status code while requesting configuration file: ${status}`
+        `Received unexpected API status code while requesting configuration file: ${error.status}`
       );
     }
   }
@@ -4165,7 +4165,7 @@ const getUserTemplates = async (client, owner, repo) => {
       );
     } else {
       throw new Error(
-        `Received unexpected API status code while requesting templates dir: ${status}`
+        `Received unexpected API status code while requesting templates dir: ${error.status}`
       );
     }
   }
@@ -4202,7 +4202,7 @@ const getUserTemplate = async (client, owner, repo, templateName) => {
       throw new Error(`Template file ${templateName} not found.`);
     } else {
       throw new Error(
-        `Received unexpected API status code while requesting ${templateName} template: ${status}`
+        `Received unexpected API status code while requesting ${templateName} template: ${error.status}`
       );
     }
   }

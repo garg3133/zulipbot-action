@@ -25,7 +25,7 @@ export default async function getUserConfig(client, owner, repo) {
       throw new Error("Configuration file not found.");
     } else {
       throw new Error(
-        `Received unexpected API status code while requesting configuration file: ${status}`
+        `Received unexpected API status code while requesting configuration file: ${error.status}`
       );
     }
   }
