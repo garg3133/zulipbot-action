@@ -25,15 +25,19 @@ const getClient = () => {
 };
 
 const getClientLogin = async (client) => {
-  const {
-    status,
-    data: { login },
-  } = await client.users.getAuthenticated();
+  let response;
 
-  if (status !== 200) {
+  try {
+    response = await client.users.getAuthenticated();
+  } catch (error) {
     throw new Error(
-      `Received unexpected API status code ${status} while requesting for bot's username.`
+      `Received unexpected API status code ${error.status} while requesting for bot's username.`
     );
+  }
+
+  const login = response.data.login;
+  if (!login) {
+    throw new Error("Unable to get bot's username.");
   }
 
   return login;
