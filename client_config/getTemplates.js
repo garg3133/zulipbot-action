@@ -29,39 +29,67 @@ const getUserTemplates = async (client, owner, repo) => {
   const templates_dir_path = getInput("templates-dir-path");
   if (!templates_dir_path) return [];
 
-  const { status, data: userTemplates } = await client.repos.getContent({
-    owner,
-    repo,
-    path: templates_dir_path,
-  });
-  if (status !== 200) {
+  let response;
+
+  try {
+    response = await client.repos.getContent({
+      owner,
+      repo,
+      path: templates_dir_path,
+    });
+  } catch (error) {
+    if (error.status === 404) {
+      throw new Error(
+        "Templates directory not found. Please check the path in your workflow file."
+      );
+    } else {
+      throw new Error(
+        `Received unexpected API status code while requesting templates dir: ${status}`
+      );
+    }
+  }
+
+  const userTemplates = response.data;
+
+  if (!Array.isArray(userTemplates)) {
     throw new Error(
-      `Received unexpected API status code while reqeusting templates: ${status}`
+      "Please provide correct templates directory path in your workflow file."
     );
   }
 
-  const userTemplatesNameArray = userTemplates.map((template) => template.name);
+  const userTemplatesNameArray = userTemplates
+    .filter((template) => template.type === "file")
+    .map((template) => template.name);
 
   return userTemplatesNameArray;
 };
 
 const getUserTemplate = async (client, owner, repo, templateName) => {
   const templates_dir_path = getInput("templates-dir-path");
-  if (!templates_dir_path) return "";
-
   const template_file_path = templates_dir_path + "/" + templateName;
 
-  const {
-    status,
-    data: { content: template_data_encoded },
-  } = await client.repos.getContent({
-    owner,
-    repo,
-    path: template_file_path,
-  });
-  if (status !== 200) {
+  let response;
+
+  try {
+    response = await client.repos.getContent({
+      owner,
+      repo,
+      path: template_file_path,
+    });
+  } catch (error) {
+    if (error.status === 404) {
+      throw new Error(`Template file ${templateName} not found.`);
+    } else {
+      throw new Error(
+        `Received unexpected API status code while requesting ${templateName} template: ${status}`
+      );
+    }
+  }
+  const template_data_encoded = response.data.content;
+
+  if (!template_data_encoded) {
     throw new Error(
-      `Received unexpected API status code while requsting template ${status}`
+      `Unable to read the contents of the template ${templateName}.`
     );
   }
 

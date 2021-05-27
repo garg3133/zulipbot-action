@@ -3898,7 +3898,6 @@ var jsYaml = {
 
 async function getUserConfig(client, owner, repo) {
   const config_file_path = (0,core.getInput)("config-file-path");
-  console.log(config_file_path);
 
   const path_split = config_file_path.split(".");
   const file_ext = path_split[path_split.length - 1];
@@ -4124,9 +4123,7 @@ async function getTemplates(client, owner, repo) {
   const templatesMap = new Map();
 
   const defaultTemplates = external_fs_.readdirSync(`${__dirname}/../templates`);
-  console.log(defaultTemplates);
   const userTemplates = await getUserTemplates(client, owner, repo);
-  console.log(userTemplates);
 
   for (const file of defaultTemplates) {
     let content;
@@ -4149,46 +4146,67 @@ const getUserTemplates = async (client, owner, repo) => {
   const templates_dir_path = (0,core.getInput)("templates-dir-path");
   if (!templates_dir_path) return [];
 
-  console.log("hello");
+  let response;
 
-  const { status, data: userTemplates } = await client.repos.getContent({
-    owner,
-    repo,
-    path: templates_dir_path,
-  });
+  try {
+    response = await client.repos.getContent({
+      owner,
+      repo,
+      path: templates_dir_path,
+    });
+  } catch (error) {
+    if (error.status === 404) {
+      throw new Error(
+        "Templates directory not found. Please check the path in your workflow file."
+      );
+    } else {
+      throw new Error(
+        `Received unexpected API status code while requesting templates dir: ${status}`
+      );
+    }
+  }
 
-  console.log("hello1");
+  const userTemplates = response.data;
 
-  console.log(status, userTemplates);
-
-  if (status !== 200) {
+  if (!Array.isArray(userTemplates)) {
     throw new Error(
-      `Received unexpected API status code while reqeusting templates: ${status}`
+      "Please provide correct templates directory path in your workflow file."
     );
   }
 
-  const userTemplatesNameArray = userTemplates.map((template) => template.name);
+  const userTemplatesNameArray = userTemplates
+    .filter((template) => template.type === "file")
+    .map((template) => template.name);
 
   return userTemplatesNameArray;
 };
 
 const getUserTemplate = async (client, owner, repo, templateName) => {
   const templates_dir_path = (0,core.getInput)("templates-dir-path");
-  if (!templates_dir_path) return "";
-
   const template_file_path = templates_dir_path + "/" + templateName;
 
-  const {
-    status,
-    data: { content: template_data_encoded },
-  } = await client.repos.getContent({
-    owner,
-    repo,
-    path: template_file_path,
-  });
-  if (status !== 200) {
+  let response;
+
+  try {
+    response = await client.repos.getContent({
+      owner,
+      repo,
+      path: template_file_path,
+    });
+  } catch (error) {
+    if (error.status === 404) {
+      throw new Error(`Template file ${templateName} not found.`);
+    } else {
+      throw new Error(
+        `Received unexpected API status code while requesting ${templateName} template: ${status}`
+      );
+    }
+  }
+  const template_data_encoded = response.data.content;
+
+  if (!template_data_encoded) {
     throw new Error(
-      `Received unexpected API status code while requsting template ${status}`
+      `Unable to read the contents of the template ${templateName}.`
     );
   }
 
@@ -4249,11 +4267,9 @@ const bot_commands_action_run = async () => {
 
     // Get user configuration
     client.config = await getUserConfig(client, owner, repo);
-    console.log(client.config);
 
     // Get supported commands
     client.commands = getBotCommands();
-    console.log(client.commands);
 
     // Get templates
     client.templates = await getTemplates(client, owner, repo);
