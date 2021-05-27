@@ -3985,11 +3985,11 @@ const run = async (client, payload, args, owner, repo) => {
 
   const number = payload.issue.number;
   const commenter = payload.comment.user.login;
-  const assignees = payload.issue.assignees;
+  const assignees = payload.issue.assignees.map((assignee) => assignee.login);
   const limit = client.config.features.claim.max_assignees;
 
   // Check if the issue is already assigned to the commenter.
-  if (assignees.find((assignee) => assignee.login === commenter)) {
+  if (assignees.includes(commenter)) {
     const error = "**ERROR:** You have already claimed this issue.";
     return client.issues.createComment({
       owner,
