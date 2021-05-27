@@ -12,23 +12,28 @@ export default async function getUserConfig(client, owner, repo) {
     );
   }
 
-  const {
-    status,
-    data: { content: config_data_encoded },
-  } = await client.repos.getContent({
-    owner,
-    repo,
-    path: config_file_path,
-  });
+  let response;
 
-  if (status !== 200) {
-    throw new Error(
-      `Received unexpected API status code while requesting config: ${status}`
-    );
+  try {
+    response = await client.repos.getContent({
+      owner,
+      repo,
+      path: config_file_path,
+    });
+  } catch (error) {
+    if (error.status === 404) {
+      throw new Error("Configuration file not found.");
+    } else {
+      throw new Error(
+        `Received unexpected API status code while requesting configuration file: ${status}`
+      );
+    }
   }
 
+  const config_data_encoded = response.data.content;
+
   if (!config_data_encoded) {
-    throw new Error("Configuration file not found.");
+    throw new Error("Unable to read the contents of the configuration file.");
   }
 
   const config_data_string = Buffer.from(

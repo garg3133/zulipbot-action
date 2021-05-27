@@ -3898,6 +3898,7 @@ var jsYaml = {
 
 async function getUserConfig(client, owner, repo) {
   const config_file_path = (0,core.getInput)("config-file-path");
+  console.log(config_file_path);
 
   const path_split = config_file_path.split(".");
   const file_ext = path_split[path_split.length - 1];
@@ -3907,23 +3908,28 @@ async function getUserConfig(client, owner, repo) {
     );
   }
 
-  const {
-    status,
-    data: { content: config_data_encoded },
-  } = await client.repos.getContent({
-    owner,
-    repo,
-    path: config_file_path,
-  });
+  let response;
 
-  if (status !== 200) {
-    throw new Error(
-      `Received unexpected API status code while requesting config: ${status}`
-    );
+  try {
+    response = await client.repos.getContent({
+      owner,
+      repo,
+      path: config_file_path,
+    });
+  } catch (error) {
+    if (error.status === 404) {
+      throw new Error("Configuration file not found.");
+    } else {
+      throw new Error(
+        `Received unexpected API status code while requesting configuration file: ${status}`
+      );
+    }
   }
 
+  const config_data_encoded = response.data.content;
+
   if (!config_data_encoded) {
-    throw new Error("Configuration file not found.");
+    throw new Error("Unable to read the contents of the configuration file.");
   }
 
   const config_data_string = Buffer.from(
@@ -4118,7 +4124,9 @@ async function getTemplates(client, owner, repo) {
   const templatesMap = new Map();
 
   const defaultTemplates = external_fs_.readdirSync(`${__dirname}/../templates`);
+  console.log(defaultTemplates);
   const userTemplates = await getUserTemplates(client, owner, repo);
+  console.log(userTemplates);
 
   for (const file of defaultTemplates) {
     let content;
@@ -4141,11 +4149,15 @@ const getUserTemplates = async (client, owner, repo) => {
   const templates_dir_path = (0,core.getInput)("templates-dir-path");
   if (!templates_dir_path) return [];
 
+  console.log("hello");
+
   const { status, data: userTemplates } = await client.repos.getContent({
     owner,
     repo,
     path: templates_dir_path,
   });
+
+  console.log("hello1");
 
   console.log(status, userTemplates);
 
