@@ -35,7 +35,7 @@ const run = async () => {
       const commandsToRun = parseComment(client, payload.comment);
 
       for (const [command, args] of Object.entries(commandsToRun)) {
-        command_run = client.commands.get(command);
+        const command_run = client.commands.get(command);
 
         if (command_run) {
           command_run(client, payload, args, owner, repo);
