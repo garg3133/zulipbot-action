@@ -2,7 +2,7 @@ module.exports =
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 486:
+/***/ 155:
 /***/ ((__unused_webpack_module, __webpack_exports__, __nccwpck_require__) => {
 
 "use strict";
@@ -4015,13 +4015,39 @@ const run = async (client, payload, args, owner, repo) => {
   return addAssignee(client, commenter, number, owner, repo);
 };
 
+// CONCATENATED MODULE: ./bot-commands-action/commands/abandon/abandon.js
+const abandon_run = async (client, payload, args, owner, repo) => {
+  const number = payload.issue.number;
+  const commenter = payload.comment.user.login;
+  const assignees = payload.issue.assignees.map((assignee) => assignee.login);
+
+  if (!assignees.includes(commenter)) {
+    const error = "**ERROR:** You have not claimed this issue to work on yet.";
+    return client.issues.createComment({
+      owner,
+      repo,
+      issue_number: number,
+      body: error,
+    });
+  }
+
+  return client.issues.removeAssignees({
+    owner,
+    repo,
+    issue_number: number,
+    assignees: [commenter],
+  });
+};
+
 // CONCATENATED MODULE: ./bot-commands-action/commands/getBotCommands.js
+
 
 
 function getBotCommands() {
     const commands = new Map();
 
     commands.set("claim", run);
+    commands.set("abandon", abandon_run);
 
     return commands;
 }
@@ -10271,6 +10297,6 @@ module.exports = require("zlib");;
 /******/ 	// module exports must be returned from runtime so entry inlining is disabled
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
-/******/ 	return __nccwpck_require__(486);
+/******/ 	return __nccwpck_require__(155);
 /******/ })()
 ;
