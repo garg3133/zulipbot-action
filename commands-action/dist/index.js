@@ -2,7 +2,7 @@ module.exports =
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 155:
+/***/ 735:
 /***/ ((__unused_webpack_module, __webpack_exports__, __nccwpck_require__) => {
 
 "use strict";
@@ -3945,7 +3945,7 @@ async function getUserConfig(client, owner, repo) {
   return config_data;
 }
 
-// CONCATENATED MODULE: ./bot-commands-action/commands/claim/addAssignee.js
+// CONCATENATED MODULE: ./commands-action/commands/claim/addAssignee.js
 async function addAssignee(
   client,
   commenter,
@@ -3973,7 +3973,7 @@ async function addAssignee(
   });
 }
 
-// CONCATENATED MODULE: ./bot-commands-action/commands/claim/claim.js
+// CONCATENATED MODULE: ./commands-action/commands/claim/claim.js
 
 
 const run = async (client, payload, args, owner, repo) => {
@@ -4015,7 +4015,7 @@ const run = async (client, payload, args, owner, repo) => {
   return addAssignee(client, commenter, number, owner, repo);
 };
 
-// CONCATENATED MODULE: ./bot-commands-action/commands/abandon/abandon.js
+// CONCATENATED MODULE: ./commands-action/commands/abandon/abandon.js
 const abandon_run = async (client, payload, args, owner, repo) => {
   const number = payload.issue.number;
   const commenter = payload.comment.user.login;
@@ -4039,7 +4039,7 @@ const abandon_run = async (client, payload, args, owner, repo) => {
   });
 };
 
-// CONCATENATED MODULE: ./bot-commands-action/commands/getBotCommands.js
+// CONCATENATED MODULE: ./commands-action/commands/getBotCommands.js
 
 
 
@@ -4245,7 +4245,7 @@ const getUserTemplate = async (client, owner, repo, templateName) => {
   return templateData;
 };
 
-// CONCATENATED MODULE: ./bot-commands-action/parseComment.js
+// CONCATENATED MODULE: ./commands-action/parseComment.js
 function parseComment(client, comment) {
   const commands = {};
   const commentBody = comment.body;
@@ -4271,7 +4271,7 @@ function parseComment(client, comment) {
   return commands;
 }
 
-// CONCATENATED MODULE: ./bot-commands-action/index.js
+// CONCATENATED MODULE: ./commands-action/index.js
 
 
 
@@ -4280,7 +4280,7 @@ function parseComment(client, comment) {
 
 
 
-const bot_commands_action_run = async () => {
+const commands_action_run = async () => {
   try {
     // Works for both issue comment and PR comment.
     if (github.context.eventName !== "issue_comment") return;
@@ -4350,7 +4350,7 @@ function parse_comment(client, payload) {
 }
 
 // Run the script
-bot_commands_action_run();
+commands_action_run();
 
 
 /***/ }),
@@ -10297,6 +10297,6 @@ module.exports = require("zlib");;
 /******/ 	// module exports must be returned from runtime so entry inlining is disabled
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
-/******/ 	return __nccwpck_require__(155);
+/******/ 	return __nccwpck_require__(735);
 /******/ })()
 ;
