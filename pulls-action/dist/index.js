@@ -8450,15 +8450,19 @@ const getClient = () => {
 };
 
 const getClientLogin = async (client) => {
-  const {
-    status,
-    data: { login },
-  } = await client.users.getAuthenticated();
+  let response;
 
-  if (status !== 200) {
+  try {
+    response = await client.users.getAuthenticated();
+  } catch (error) {
     throw new Error(
-      `Received unexpected API status code ${status} while requesting for bot's username.`
+      `Received unexpected API status code ${error.status} while requesting for bot's username.`
     );
+  }
+
+  const login = response.data.login;
+  if (!login) {
+    throw new Error("Unable to get bot's username.");
   }
 
   return login;
@@ -12322,33 +12326,49 @@ var jsYaml = {
 
 
 async function getUserConfig(client, owner, repo) {
-  const config_file_path = (0,core.getInput)('config-file-path');
+  const config_file_path = (0,core.getInput)("config-file-path");
+
+  const path_split = config_file_path.split(".");
+  const file_ext = path_split[path_split.length - 1];
+  if (!file_ext.match(/^y[a]?ml$/i)) {
+    throw new Error(
+      "Please provide path to a YAML config file in your workflow."
+    );
+  }
+
+  let response;
 
   try {
-    const {status, data: {content: config_data_encoded}} = await client.repos.getContent({
+    response = await client.repos.getContent({
       owner,
       repo,
-      path: config_file_path
+      path: config_file_path,
     });
-
-    if (status !== 200) {
-      throw new Error(`Received unexpected API status code while requsting config ${status}`);
-    }
-
-    if (!config_data_encoded) {
-      throw new Error('Configuration file not found.')
-    }
-
-    const config_data_string = Buffer.from(config_data_encoded, 'base64').toString('utf-8');
-    const config_data = load(config_data_string);
-
-    return config_data;
-
   } catch (error) {
-    (0,core.setFailed)(error.message);
+    if (error.status === 404) {
+      throw new Error("Configuration file not found.");
+    } else {
+      throw new Error(
+        `Received unexpected API status code while requesting configuration file: ${error.status}`
+      );
+    }
   }
-}
 
+  const config_data_encoded = response.data.content;
+
+  if (!config_data_encoded) {
+    throw new Error("Unable to read the contents of the configuration file.");
+  }
+
+  const config_data_string = Buffer.from(
+    config_data_encoded,
+    "base64"
+  ).toString("utf-8");
+
+  const config_data = load(config_data_string);
+
+  return config_data;
+}
 
 // EXTERNAL MODULE: external "fs"
 var external_fs_ = __nccwpck_require__(5747);
