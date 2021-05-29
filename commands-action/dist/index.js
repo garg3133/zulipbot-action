@@ -2,7 +2,7 @@ module.exports =
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 735:
+/***/ 401:
 /***/ ((__unused_webpack_module, __webpack_exports__, __nccwpck_require__) => {
 
 "use strict";
@@ -13,34 +13,27 @@ __nccwpck_require__.r(__webpack_exports__);
 var core = __nccwpck_require__(186);
 // EXTERNAL MODULE: ./node_modules/@actions/github/lib/github.js
 var github = __nccwpck_require__(438);
-// CONCATENATED MODULE: ./client_config/client.js
-
+// CONCATENATED MODULE: ./lib/client_config/client.js
 
 
 const getClient = () => {
-  const token = core.getInput("token", { required: true });
-  const client = github.getOctokit("", { auth: token });
-
-  return client;
+    const token = core.getInput("token", { required: true });
+    const client = github.getOctokit("", { auth: token });
+    return client;
 };
-
 const getClientLogin = async (client) => {
-  let response;
-
-  try {
-    response = await client.users.getAuthenticated();
-  } catch (error) {
-    throw new Error(
-      `Received unexpected API status code ${error.status} while requesting for bot's username.`
-    );
-  }
-
-  const login = response.data.login;
-  if (!login) {
-    throw new Error("Unable to get bot's username.");
-  }
-
-  return login;
+    let response;
+    try {
+        response = await client.users.getAuthenticated();
+    }
+    catch (error) {
+        throw new Error(`Received unexpected API status code ${error.status} while requesting for bot's username.`);
+    }
+    const login = response.data.login;
+    if (!login) {
+        throw new Error("Unable to get bot's username.");
+    }
+    return login;
 };
 
 // CONCATENATED MODULE: ./node_modules/js-yaml/dist/js-yaml.mjs
@@ -3896,383 +3889,310 @@ var jsYaml = {
 /* harmony default export */ const js_yaml = ((/* unused pure expression or super */ null && (jsYaml)));
 
 
-// CONCATENATED MODULE: ./client_config/getUserConfig.js
-
+// CONCATENATED MODULE: ./lib/client_config/getUserConfig.js
 
 
 async function getUserConfig(client, owner, repo) {
-  const config_file_path = (0,core.getInput)("config-file-path");
-
-  const path_split = config_file_path.split(".");
-  const file_ext = path_split[path_split.length - 1];
-  if (!file_ext.match(/^y[a]?ml$/i)) {
-    throw new Error(
-      "Please provide path to a YAML config file in your workflow."
-    );
-  }
-
-  let response;
-
-  try {
-    response = await client.repos.getContent({
-      owner,
-      repo,
-      path: config_file_path,
-    });
-  } catch (error) {
-    if (error.status === 404) {
-      throw new Error("Configuration file not found.");
-    } else {
-      throw new Error(
-        `Received unexpected API status code while requesting configuration file: ${error.status}`
-      );
+    const config_file_path = (0,core.getInput)("config-file-path");
+    const path_split = config_file_path.split(".");
+    const file_ext = path_split[path_split.length - 1];
+    if (!file_ext.match(/^y[a]?ml$/i)) {
+        throw new Error("Please provide path to a YAML config file in your workflow.");
     }
-  }
-
-  const config_data_encoded = response.data.content;
-
-  if (!config_data_encoded) {
-    throw new Error("Unable to read the contents of the configuration file.");
-  }
-
-  const config_data_string = Buffer.from(
-    config_data_encoded,
-    "base64"
-  ).toString("utf-8");
-
-  const config_data = load(config_data_string);
-
-  return config_data;
+    let response;
+    try {
+        response = await client.repos.getContent({
+            owner,
+            repo,
+            path: config_file_path,
+        });
+    }
+    catch (error) {
+        if (error.status === 404) {
+            throw new Error("Configuration file not found.");
+        }
+        else {
+            throw new Error(`Received unexpected API status code while requesting configuration file: ${error.status}`);
+        }
+    }
+    const config_data_encoded = response.data.content;
+    if (!config_data_encoded) {
+        throw new Error("Unable to read the contents of the configuration file.");
+    }
+    const config_data_string = Buffer.from(config_data_encoded, "base64").toString("utf-8");
+    const config_data = load(config_data_string);
+    return config_data;
 }
 
-// CONCATENATED MODULE: ./commands-action/commands/claim/addAssignee.js
-async function addAssignee(
-  client,
-  commenter,
-  number,
-  owner,
-  repo
-) {
-  const response = await client.issues.addAssignees({
-    owner,
-    repo,
-    issue_number: number,
-    assignees: [commenter],
-  });
-
-  const assignees = response.data.assignees.map((assignee) => assignee.login);
-  if (assignees.includes(commenter)) return;
-
-  const error = "**ERROR:** Issue claiming failed (no assignee was added).";
-
-  return client.issues.createComment({
-    owner,
-    repo,
-    issue_number: number,
-    body: error,
-  });
+// CONCATENATED MODULE: ./lib/commands-action/commands/claim/addAssignee.js
+async function addAssignee(client, commenter, number, owner, repo) {
+    const response = await client.issues.addAssignees({
+        owner,
+        repo,
+        issue_number: number,
+        assignees: [commenter],
+    });
+    const assignees = response.data.assignees.map((assignee) => assignee.login);
+    if (assignees.includes(commenter))
+        return;
+    const error = "**ERROR:** Issue claiming failed (no assignee was added).";
+    return client.issues.createComment({
+        owner,
+        repo,
+        issue_number: number,
+        body: error,
+    });
 }
 
-// CONCATENATED MODULE: ./commands-action/commands/claim/claim.js
-
+// CONCATENATED MODULE: ./lib/commands-action/commands/claim/claim.js
 
 const run = async (client, payload, args, owner, repo) => {
-  // Return if comment is made on a Pull Request.
-  // Comment out the following line if you want to use claim on PRs too.
-  if (payload.issue.pull_request) return;
-
-  console.log("Args:", args);
-
-  const number = payload.issue.number;
-  const commenter = payload.comment.user.login;
-  const assignees = payload.issue.assignees.map((assignee) => assignee.login);
-  const limit = client.config.features.claim.max_assignees;
-
-  // Check if the issue is already assigned to the commenter.
-  if (assignees.includes(commenter)) {
-    const error = "**ERROR:** You have already claimed this issue.";
-    return client.issues.createComment({
-      owner,
-      repo,
-      issue_number: number,
-      body: error,
-    });
-  }
-
-  // Check if assigning the issue to the commenter will exceed the limit.
-  if (assignees.length >= limit) {
-    const warn = client.templates
-      .get("multipleClaimWarning")
-      .format({ commenter });
-    return client.issues.createComment({
-      owner,
-      repo,
-      issue_number: number,
-      body: warn,
-    });
-  }
-
-  return addAssignee(client, commenter, number, owner, repo);
+    // Return if comment is made on a Pull Request.
+    // Comment out the following line if you want to use claim on PRs too.
+    if (payload.issue.pull_request)
+        return;
+    console.log("Args:", args);
+    const number = payload.issue.number;
+    const commenter = payload.comment.user.login;
+    const assignees = payload.issue.assignees.map((assignee) => assignee.login);
+    const limit = client.config.features.claim.max_assignees;
+    // Check if the issue is already assigned to the commenter.
+    if (assignees.includes(commenter)) {
+        const error = "**ERROR:** You have already claimed this issue.";
+        return client.issues.createComment({
+            owner,
+            repo,
+            issue_number: number,
+            body: error,
+        });
+    }
+    // Check if assigning the issue to the commenter will exceed the limit.
+    if (assignees.length >= limit) {
+        const warn = client.templates
+            .get("multipleClaimWarning")
+            .format({ commenter });
+        return client.issues.createComment({
+            owner,
+            repo,
+            issue_number: number,
+            body: warn,
+        });
+    }
+    return addAssignee(client, commenter, number, owner, repo);
 };
 
-// CONCATENATED MODULE: ./commands-action/commands/abandon/abandon.js
+// CONCATENATED MODULE: ./lib/commands-action/commands/abandon/abandon.js
 const abandon_run = async (client, payload, args, owner, repo) => {
-  const number = payload.issue.number;
-  const commenter = payload.comment.user.login;
-  const assignees = payload.issue.assignees.map((assignee) => assignee.login);
-
-  if (!assignees.includes(commenter)) {
-    const error = "**ERROR:** You have not claimed this issue to work on yet.";
-    return client.issues.createComment({
-      owner,
-      repo,
-      issue_number: number,
-      body: error,
+    const number = payload.issue.number;
+    const commenter = payload.comment.user.login;
+    const assignees = payload.issue.assignees.map((assignee) => assignee.login);
+    if (!assignees.includes(commenter)) {
+        const error = "**ERROR:** You have not claimed this issue to work on yet.";
+        return client.issues.createComment({
+            owner,
+            repo,
+            issue_number: number,
+            body: error,
+        });
+    }
+    return client.issues.removeAssignees({
+        owner,
+        repo,
+        issue_number: number,
+        assignees: [commenter],
     });
-  }
-
-  return client.issues.removeAssignees({
-    owner,
-    repo,
-    issue_number: number,
-    assignees: [commenter],
-  });
 };
 
-// CONCATENATED MODULE: ./commands-action/commands/getBotCommands.js
-
+// CONCATENATED MODULE: ./lib/commands-action/commands/getBotCommands.js
 
 
 function getBotCommands() {
     const commands = new Map();
-
     commands.set("claim", run);
     commands.set("abandon", abandon_run);
-
     return commands;
 }
+
 // EXTERNAL MODULE: external "fs"
 var external_fs_ = __nccwpck_require__(747);
-// CONCATENATED MODULE: ./utils.js
+// CONCATENATED MODULE: ./lib/utils.js
 /**
  * Sorts and removes duplicate elements from a given array.
  *
  * @param {Array} array Array to remove duplicates from.
  * @return {Array} Sorted array containing only unique entries.
  */
-
 const deduplicate = (array) => {
-  return Array.from(new Set(array)).sort();
+    return Array.from(new Set(array)).sort();
 };
-
 /**
  * Retrieves all pages of data from a node-github method.
  * @param {String} path Path of the method in the format "api.method".
  * @param {Object} parameters Parameters to pass to the method.
  * @return {Array} Array of all data entries.
  */
-
 const getAllPages = async (client, path, parameters) => {
-  const [api, method] = path.split(".");
-  const options = client[api][method].endpoint.merge(parameters);
-  const responses = await client.paginate(options);
-
-  return responses;
+    const [api, method] = path.split(".");
+    const options = client[api][method].endpoint.merge(parameters);
+    const responses = await client.paginate(options);
+    return responses;
 };
 
-// CONCATENATED MODULE: ./structures/Template.js
-
+// CONCATENATED MODULE: ./lib/structures/Template.js
 
 class Template {
-  constructor(client, name, content) {
-    /**
-     * The client that instantiated this template
-     * @type {Object}
-     */
-    this.client = client;
-
-    /**
-     * The name of this template
-     * @type {string}
-     */
-    this.name = name;
-
-    /**
-     * The content of this template
-     * @type {string}
-     */
-    this.content = content;
-  }
-
-  /**
-   * Finds comments generated from templates on a issue/pull request.
-   *
-   * @param {Object} repo Repository object of the PR/issue.
-   * @return {Array} Array of filtered template comments from the client user.
-   */
-
-  async getComments(parameters) {
-    const method = "issues.listComments";
-    const comments = await getAllPages(this.client, method, parameters);
-
-    const templateComments = comments.filter((comment) => {
-      // Use end of template comments to check if comment is from template
-      const matched = comment.body.endsWith(`<!-- ${this.name} -->`);
-      const fromClient = comment.user.login === this.client.username;
-      return matched && fromClient;
-    });
-
-    return templateComments;
-  }
-
-  /**
-   * Formats template content with values from a given context.
-   *
-   * @param {Object} context Context with names/values of variables to format
-   * @return {String} Formatted template content.
-   */
-
-  format(context) {
-    let content = this.content;
-    for (const variable of Object.entries(context)) {
-      const [expression, value] = variable;
-      content = content.replace(new RegExp(`{${expression}}`, "g"), value);
+    constructor(client, name, content) {
+        /**
+         * The client that instantiated this template
+         * @type {Object}
+         */
+        this.client = client;
+        /**
+         * The name of this template
+         * @type {string}
+         */
+        this.name = name;
+        /**
+         * The content of this template
+         * @type {string}
+         */
+        this.content = content;
     }
-
-    return content;
-  }
+    /**
+     * Finds comments generated from templates on a issue/pull request.
+     *
+     * @param {Object} repo Repository object of the PR/issue.
+     * @return {Array} Array of filtered template comments from the client user.
+     */
+    async getComments(parameters) {
+        const method = "issues.listComments";
+        const comments = await getAllPages(this.client, method, parameters);
+        const templateComments = comments.filter((comment) => {
+            // Use end of template comments to check if comment is from template
+            const matched = comment.body.endsWith(`<!-- ${this.name} -->`);
+            const fromClient = comment.user.login === this.client.username;
+            return matched && fromClient;
+        });
+        return templateComments;
+    }
+    /**
+     * Formats template content with values from a given context.
+     *
+     * @param {Object} context Context with names/values of variables to format
+     * @return {String} Formatted template content.
+     */
+    format(context) {
+        let content = this.content;
+        for (const variable of Object.entries(context)) {
+            const [expression, value] = variable;
+            content = content.replace(new RegExp(`{${expression}}`, "g"), value);
+        }
+        return content;
+    }
 }
 
-// CONCATENATED MODULE: ./client_config/getTemplates.js
-
+// CONCATENATED MODULE: ./lib/client_config/getTemplates.js
 
 
 
 async function getTemplates(client, owner, repo) {
-  const templatesMap = new Map();
-
-  const defaultTemplates = external_fs_.readdirSync(`${__dirname}/../templates`);
-  const userTemplates = await getUserTemplates(client, owner, repo);
-
-  for (const file of defaultTemplates) {
-    let content;
-
-    if (userTemplates.includes(file)) {
-      content = await getUserTemplate(client, owner, repo, file);
-    } else {
-      content = external_fs_.readFileSync(`${__dirname}/../templates/${file}`, "utf8");
+    const templatesMap = new Map();
+    const defaultTemplates = external_fs_.readdirSync(`${__dirname}/../templates`);
+    const userTemplates = await getUserTemplates(client, owner, repo);
+    for (const file of defaultTemplates) {
+        let content;
+        if (userTemplates.includes(file)) {
+            content = await getUserTemplate(client, owner, repo, file);
+        }
+        else {
+            content = external_fs_.readFileSync(`${__dirname}/../templates/${file}`, "utf8");
+        }
+        const [name] = file.split(".md");
+        const template = new Template(client, name, content);
+        templatesMap.set(name, template);
     }
-
-    const [name] = file.split(".md");
-    const template = new Template(client, name, content);
-    templatesMap.set(name, template);
-  }
-
-  return templatesMap;
+    return templatesMap;
 }
-
 const getUserTemplates = async (client, owner, repo) => {
-  const templatesDirPath = (0,core.getInput)("templates-dir-path");
-  if (!templatesDirPath) return [];
-
-  let response;
-
-  try {
-    response = await client.repos.getContent({
-      owner,
-      repo,
-      path: templatesDirPath,
-    });
-  } catch (error) {
-    if (error.status === 404) {
-      throw new Error(
-        "Templates directory not found. Please check the path in your workflow file."
-      );
-    } else {
-      throw new Error(
-        `Received unexpected API status code while requesting templates dir: ${error.status}`
-      );
+    const templatesDirPath = (0,core.getInput)("templates-dir-path");
+    if (!templatesDirPath)
+        return [];
+    let response;
+    try {
+        response = await client.repos.getContent({
+            owner,
+            repo,
+            path: templatesDirPath,
+        });
     }
-  }
-
-  const userTemplates = response.data;
-
-  if (!Array.isArray(userTemplates)) {
-    throw new Error(
-      "Please provide correct templates directory path in your workflow file."
-    );
-  }
-
-  const userTemplatesNameArray = userTemplates
-    .filter((template) => template.type === "file")
-    .map((template) => template.name);
-
-  return userTemplatesNameArray;
+    catch (error) {
+        if (error.status === 404) {
+            throw new Error("Templates directory not found. Please check the path in your workflow file.");
+        }
+        else {
+            throw new Error(`Received unexpected API status code while requesting templates dir: ${error.status}`);
+        }
+    }
+    const userTemplates = response.data;
+    if (!Array.isArray(userTemplates)) {
+        throw new Error("Please provide correct templates directory path in your workflow file.");
+    }
+    const userTemplatesNameArray = userTemplates
+        .filter((template) => template.type === "file")
+        .map((template) => template.name);
+    return userTemplatesNameArray;
 };
-
 const getUserTemplate = async (client, owner, repo, templateName) => {
-  const templatesDirPath = (0,core.getInput)("templates-dir-path");
-  const templateFilePath = templatesDirPath + "/" + templateName;
-
-  let response;
-
-  try {
-    response = await client.repos.getContent({
-      owner,
-      repo,
-      path: templateFilePath,
-    });
-  } catch (error) {
-    if (error.status === 404) {
-      throw new Error(`Template file ${templateName} not found.`);
-    } else {
-      throw new Error(
-        `Received unexpected API status code while requesting ${templateName} template: ${error.status}`
-      );
+    const templatesDirPath = (0,core.getInput)("templates-dir-path");
+    const templateFilePath = templatesDirPath + "/" + templateName;
+    let response;
+    try {
+        response = await client.repos.getContent({
+            owner,
+            repo,
+            path: templateFilePath,
+        });
     }
-  }
-  const templateDataEncoded = response.data.content;
-
-  if (!templateDataEncoded) {
-    throw new Error(
-      `Unable to read the contents of the template ${templateName}.`
-    );
-  }
-
-  const templateData = Buffer.from(templateDataEncoded, "base64").toString(
-    "utf-8"
-  );
-  return templateData;
+    catch (error) {
+        if (error.status === 404) {
+            throw new Error(`Template file ${templateName} not found.`);
+        }
+        else {
+            throw new Error(`Received unexpected API status code while requesting ${templateName} template: ${error.status}`);
+        }
+    }
+    const templateDataEncoded = response.data.content;
+    if (!templateDataEncoded) {
+        throw new Error(`Unable to read the contents of the template ${templateName}.`);
+    }
+    const templateData = Buffer.from(templateDataEncoded, "base64").toString("utf-8");
+    return templateData;
 };
 
-// CONCATENATED MODULE: ./commands-action/parseComment.js
+// CONCATENATED MODULE: ./lib/commands-action/parseComment.js
 function parseComment(client, comment) {
-  const commands = {};
-  const commentBody = comment.body;
-  const commenter = comment.user.login;
-
-  if (commenter === client.username || !commentBody) return commands;
-
-  const regex = RegExp(`@${client.username} +(\\w+)( +(--\\w+|"[^"]+"))*`, "g");
-  const parsed = commentBody.match(regex);
-  if(!parsed) return commands;
-
-  parsed.forEach((command) => {
-    const codeBlocks = [`\`\`\`\r\n${command}\r\n\`\`\``, `\`${command}\``];
-    if (codeBlocks.some((block) => commentBody.includes(block))) return;
-
-    const [, keyword] = command.replace(/\s+/, " ").split(" ");
-    const args = command.replace(/\s+/, " ").split(" ").slice(2).join(" ");
-
-    commands[keyword] = args;
-  });
-
-  console.log("Commands:" , commands);
-  return commands;
+    const commands = {};
+    const commentBody = comment.body;
+    const commenter = comment.user.login;
+    if (commenter === client.username || !commentBody)
+        return commands;
+    const regex = RegExp(`@${client.username} +(\\w+)( +(--\\w+|"[^"]+"))*`, "g");
+    const parsed = commentBody.match(regex);
+    if (!parsed)
+        return commands;
+    parsed.forEach((command) => {
+        const codeBlocks = [`\`\`\`\r\n${command}\r\n\`\`\``, `\`${command}\``];
+        if (codeBlocks.some((block) => commentBody.includes(block)))
+            return;
+        const [, keyword] = command.replace(/\s+/, " ").split(" ");
+        const args = command.replace(/\s+/, " ").split(" ").slice(2).join(" ");
+        commands[keyword] = args;
+    });
+    console.log("Commands:", commands);
+    return commands;
 }
 
-// CONCATENATED MODULE: ./commands-action/index.js
-
+// CONCATENATED MODULE: ./lib/commands-action/index.js
 
 
 
@@ -4281,74 +4201,61 @@ function parseComment(client, comment) {
 
 
 const commands_action_run = async () => {
-  try {
-    // Works for both issue comment and PR comment.
-    if (github.context.eventName !== "issue_comment") return;
-
-    const client = getClient();
-
-    // Use promise.all() below??
-
-    // Get bot's username
-    client.username = await getClientLogin(client);
-
-    const { owner, repo } = github.context.issue;
-
-    // Get user configuration
-    client.config = await getUserConfig(client, owner, repo);
-
-    // Get supported commands
-    client.commands = getBotCommands();
-
-    // Get templates
-    client.templates = await getTemplates(client, owner, repo);
-
-    const payload = github.context.payload;
-
-    if (payload.action === "created") {
-      const commandsToRun = parseComment(client, payload.comment);
-
-      for (const [command, args] of Object.entries(commandsToRun)) {
-        const command_run = client.commands.get(command);
-
-        if (command_run) {
-          command_run(client, payload, args, owner, repo);
+    try {
+        // Works for both issue comment and PR comment.
+        if (github.context.eventName !== "issue_comment")
+            return;
+        const client = getClient();
+        // Use promise.all() below??
+        // Get bot's username
+        client.username = await getClientLogin(client);
+        const { owner, repo } = github.context.issue;
+        // Get user configuration
+        client.config = await getUserConfig(client, owner, repo);
+        // Get supported commands
+        client.commands = getBotCommands();
+        // Get templates
+        client.templates = await getTemplates(client, owner, repo);
+        const payload = github.context.payload;
+        if (payload.action === "created") {
+            const commandsToRun = parseComment(client, payload.comment);
+            for (const [command, args] of Object.entries(commandsToRun)) {
+                const command_run = client.commands.get(command);
+                if (command_run) {
+                    command_run(client, payload, args, owner, repo);
+                }
+            }
         }
-      }
     }
-  } catch (error) {
-    (0,core.setFailed)(error.message);
-  }
+    catch (error) {
+        (0,core.setFailed)(error.message);
+    }
 };
-
 function parse_comment(client, payload) {
-  const data = payload.comment;
-  const commenter = data.user.login;
-  const body = data.body;
-  const username = client.username;
-
-  if (commenter === username || !body) return;
-
-  const prefix = RegExp(`@${username} +(\\w+)( +(--\\w+|"[^"]+"))*`, "g");
-  const parsed = body.match(prefix);
-  if (!parsed) return;
-
-  parsed.forEach((command) => {
-    const codeBlocks = [`\`\`\`\r\n${command}\r\n\`\`\``, `\`${command}\``];
-    if (codeBlocks.some((block) => body.includes(block))) return;
-    const [, keyword] = command.replace(/\s+/, " ").split(" ");
-    const args = command.replace(/\s+/, " ").split(" ").slice(2).join(" ");
-    const file = client.commands.get(keyword);
-
-    // Return {keyword: args}
-    // Return {keyword: {args: ..., ...:...}} incase of more data.
-
-    if (file) {
-      file.run.apply(client, [payload, commenter, args]);
-    }
-  });
+    const data = payload.comment;
+    const commenter = data.user.login;
+    const body = data.body;
+    const username = client.username;
+    if (commenter === username || !body)
+        return;
+    const prefix = RegExp(`@${username} +(\\w+)( +(--\\w+|"[^"]+"))*`, "g");
+    const parsed = body.match(prefix);
+    if (!parsed)
+        return;
+    parsed.forEach((command) => {
+        const codeBlocks = [`\`\`\`\r\n${command}\r\n\`\`\``, `\`${command}\``];
+        if (codeBlocks.some((block) => body.includes(block)))
+            return;
+        const [, keyword] = command.replace(/\s+/, " ").split(" ");
+        const args = command.replace(/\s+/, " ").split(" ").slice(2).join(" ");
+        const file = client.commands.get(keyword);
+        // Return {keyword: args}
+        // Return {keyword: {args: ..., ...:...}} incase of more data.
+        if (file) {
+            file.run.apply(client, [payload, commenter, args]);
+        }
+    });
 }
-
 // Run the script
 commands_action_run();
 
@@ -10297,6 +10204,6 @@ module.exports = require("zlib");;
 /******/ 	// module exports must be returned from runtime so entry inlining is disabled
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
-/******/ 	return __nccwpck_require__(735);
+/******/ 	return __nccwpck_require__(401);
 /******/ })()
 ;
