@@ -4,10 +4,11 @@
   "description": "GitHub workflow-optimizing action built by Zulip",
   "main": "index.js",
   "scripts": {
-    "build-commands-action": "ncc build commands-action -o commands-action/dist --license licenses.txt",
-    "build-areas-action": "ncc build areas-action -o areas-action/dist --license licenses.txt",
-    "build-activity-action": "ncc build activity-action -o activity-action/dist --license licenses.txt",
-    "build-pulls-action": "ncc build pulls-action -o pulls-action/dist --license licenses.txt",
+    "tsc": "tsc",
+    "build-commands-action": "tsc && ncc build lib/commands-action -o commands-action/dist --license licenses.txt",
+    "build-areas-action": "tsc && ncc build lib/areas-action -o areas-action/dist --license licenses.txt",
+    "build-activity-action": "tsc && ncc build lib/activity-action -o activity-action/dist --license licenses.txt",
+    "build-pulls-action": "tsc && ncc build lib/pulls-action -o pulls-action/dist --license licenses.txt",
     "format": "prettier --write **/*.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
