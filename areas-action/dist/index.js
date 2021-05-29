@@ -2,7 +2,7 @@ module.exports =
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 109:
+/***/ 772:
 /***/ ((__unused_webpack_module, __webpack_exports__, __nccwpck_require__) => {
 
 "use strict";
@@ -13,34 +13,27 @@ __nccwpck_require__.r(__webpack_exports__);
 var core = __nccwpck_require__(186);
 // EXTERNAL MODULE: ./node_modules/@actions/github/lib/github.js
 var github = __nccwpck_require__(438);
-// CONCATENATED MODULE: ./client_config/client.js
-
+// CONCATENATED MODULE: ./lib/client_config/client.js
 
 
 const getClient = () => {
-  const token = core.getInput("token", { required: true });
-  const client = github.getOctokit("", { auth: token });
-
-  return client;
+    const token = core.getInput("token", { required: true });
+    const client = github.getOctokit("", { auth: token });
+    return client;
 };
-
 const getClientLogin = async (client) => {
-  let response;
-
-  try {
-    response = await client.users.getAuthenticated();
-  } catch (error) {
-    throw new Error(
-      `Received unexpected API status code ${error.status} while requesting for bot's username.`
-    );
-  }
-
-  const login = response.data.login;
-  if (!login) {
-    throw new Error("Unable to get bot's username.");
-  }
-
-  return login;
+    let response;
+    try {
+        response = await client.users.getAuthenticated();
+    }
+    catch (error) {
+        throw new Error(`Received unexpected API status code ${error.status} while requesting for bot's username.`);
+    }
+    const login = response.data.login;
+    if (!login) {
+        throw new Error("Unable to get bot's username.");
+    }
+    return login;
 };
 
 // CONCATENATED MODULE: ./node_modules/js-yaml/dist/js-yaml.mjs
@@ -3896,163 +3889,132 @@ var jsYaml = {
 /* harmony default export */ const js_yaml = ((/* unused pure expression or super */ null && (jsYaml)));
 
 
-// CONCATENATED MODULE: ./client_config/getUserConfig.js
-
+// CONCATENATED MODULE: ./lib/client_config/getUserConfig.js
 
 
 async function getUserConfig(client, owner, repo) {
-  const config_file_path = (0,core.getInput)("config-file-path");
-
-  const path_split = config_file_path.split(".");
-  const file_ext = path_split[path_split.length - 1];
-  if (!file_ext.match(/^y[a]?ml$/i)) {
-    throw new Error(
-      "Please provide path to a YAML config file in your workflow."
-    );
-  }
-
-  let response;
-
-  try {
-    response = await client.repos.getContent({
-      owner,
-      repo,
-      path: config_file_path,
-    });
-  } catch (error) {
-    if (error.status === 404) {
-      throw new Error("Configuration file not found.");
-    } else {
-      throw new Error(
-        `Received unexpected API status code while requesting configuration file: ${error.status}`
-      );
+    const config_file_path = (0,core.getInput)("config-file-path");
+    const path_split = config_file_path.split(".");
+    const file_ext = path_split[path_split.length - 1];
+    if (!file_ext.match(/^y[a]?ml$/i)) {
+        throw new Error("Please provide path to a YAML config file in your workflow.");
     }
-  }
-
-  const config_data_encoded = response.data.content;
-
-  if (!config_data_encoded) {
-    throw new Error("Unable to read the contents of the configuration file.");
-  }
-
-  const config_data_string = Buffer.from(
-    config_data_encoded,
-    "base64"
-  ).toString("utf-8");
-
-  const config_data = load(config_data_string);
-
-  return config_data;
+    let response;
+    try {
+        response = await client.repos.getContent({
+            owner,
+            repo,
+            path: config_file_path,
+        });
+    }
+    catch (error) {
+        if (error.status === 404) {
+            throw new Error("Configuration file not found.");
+        }
+        else {
+            throw new Error(`Received unexpected API status code while requesting configuration file: ${error.status}`);
+        }
+    }
+    const config_data_encoded = response.data.content;
+    if (!config_data_encoded) {
+        throw new Error("Unable to read the contents of the configuration file.");
+    }
+    const config_data_string = Buffer.from(config_data_encoded, "base64").toString("utf-8");
+    const config_data = load(config_data_string);
+    return config_data;
 }
 
-// CONCATENATED MODULE: ./areas-action/areaLabel.js
+// CONCATENATED MODULE: ./lib/areas-action/areaLabel.js
 const run = async (client, payload) => {
-  const issue = payload.issue || payload.pull_request;
-  const number = issue.number;
-  const issueLabels = issue.labels.map((label) => label.name);
-  const areaLabel = payload.label.name;
-  const repoName = payload.repository.name;
-  const repoOwner = payload.repository.owner.login;
-  const allowedAreaLabels = client.config.area_labels;
-
-  if (!(areaLabel in allowedAreaLabels)) return;
-
-  const issueAreaLabels = issueLabels.filter(
-    (label) => label in allowedAreaLabels
-  );
-  const labelTeams = issueAreaLabels.map((label) => allowedAreaLabels[label]);
-  console.log(labelTeams);
-
-  // Create unique array of teams (multiple labels can point to same team)
-  const uniqueTeams = Array.from(new Set(labelTeams)).sort();
-  console.log(uniqueTeams);
-
-  // Get the issue in the latest state, to avoid editing the issue multiple
-  // times with the same teams, when labels area added in bulk.
-  // Issues API also supports pull requests.
-  const { status, data: updatedIssue } = await client.issues.get({
-    owner: repoOwner,
-    repo: repoName,
-    issue_number: number,
-  });
-  if (status !== 200) {
-    throw new Error(
-      `Received unexpected API status code ${status} while searching for issue.`
-    );
-  }
-
-  const prefix = `CC by @${client.username}: `;
-  const areaTeams = `@${repoOwner}/${uniqueTeams.join(`, @${repoOwner}/`)}`;
-
-  const newCC = `${prefix}${areaTeams}`;
-  console.log(newCC);
-
-  const pattern = new RegExp(`${prefix}.+$`, "m");
-  const found = updatedIssue.body.match(pattern);
-  console.log(found);
-
-  if (found) {
-    console.log(found[0]);
-    if (uniqueTeams.length) {
-      if (found[0] !== newCC) {
-        updatedIssue.body = updatedIssue.body.replace(pattern, newCC);
-      } else {
+    const issue = payload.issue || payload.pull_request;
+    const number = issue.number;
+    const issueLabels = issue.labels.map((label) => label.name);
+    const areaLabel = payload.label.name;
+    const repoName = payload.repository.name;
+    const repoOwner = payload.repository.owner.login;
+    const allowedAreaLabels = client.config.area_labels;
+    if (!(areaLabel in allowedAreaLabels))
         return;
-      }
-    } else {
-      updatedIssue.body = updatedIssue.body.replace(pattern, "");
+    const issueAreaLabels = issueLabels.filter((label) => label in allowedAreaLabels);
+    const labelTeams = issueAreaLabels.map((label) => allowedAreaLabels[label]);
+    console.log(labelTeams);
+    // Create unique array of teams (multiple labels can point to same team)
+    const uniqueTeams = Array.from(new Set(labelTeams)).sort();
+    console.log(uniqueTeams);
+    // Get the issue in the latest state, to avoid editing the issue multiple
+    // times with the same teams, when labels area added in bulk.
+    // Issues API also supports pull requests.
+    const { status, data: updatedIssue } = await client.issues.get({
+        owner: repoOwner,
+        repo: repoName,
+        issue_number: number,
+    });
+    if (status !== 200) {
+        throw new Error(`Received unexpected API status code ${status} while searching for issue.`);
     }
-  } else {
-    if (uniqueTeams.length) {
-      updatedIssue.body += `\n\n${newCC}`;
-    } else {
-      return;
+    const prefix = `CC by @${client.username}: `;
+    const areaTeams = `@${repoOwner}/${uniqueTeams.join(`, @${repoOwner}/`)}`;
+    const newCC = `${prefix}${areaTeams}`;
+    console.log(newCC);
+    const pattern = new RegExp(`${prefix}.+$`, "m");
+    const found = updatedIssue.body.match(pattern);
+    console.log(found);
+    if (found) {
+        console.log(found[0]);
+        if (uniqueTeams.length) {
+            if (found[0] !== newCC) {
+                updatedIssue.body = updatedIssue.body.replace(pattern, newCC);
+            }
+            else {
+                return;
+            }
+        }
+        else {
+            updatedIssue.body = updatedIssue.body.replace(pattern, "");
+        }
     }
-  }
-
-  await client.issues.update({
-    owner: repoOwner,
-    repo: repoName,
-    issue_number: number,
-    body: updatedIssue.body,
-  });
+    else {
+        if (uniqueTeams.length) {
+            updatedIssue.body += `\n\n${newCC}`;
+        }
+        else {
+            return;
+        }
+    }
+    await client.issues.update({
+        owner: repoOwner,
+        repo: repoName,
+        issue_number: number,
+        body: updatedIssue.body,
+    });
 };
 
-// CONCATENATED MODULE: ./areas-action/index.js
-
+// CONCATENATED MODULE: ./lib/areas-action/index.js
 
 
 
 
 
 const areas_action_run = async () => {
-  try {
-    const client = getClient();
-
-    // Get bot's username
-    client.username = await getClientLogin(client);
-
-    const {owner, repo} = github.context.issue;
-
-    // Get user configuration
-    client.config = await getUserConfig(client, owner, repo);
-
-    if (
-      github.context.eventName !== "issues" &&
-      github.context.eventName !== "pull_request_target"
-    )
-      return;
-
-    const payload = github.context.payload;
-    if (payload.action === "labeled" || payload.action === "unlabeled") {
-      await run(client, payload);
+    try {
+        const client = getClient();
+        // Get bot's username
+        client.username = await getClientLogin(client);
+        const { owner, repo } = github.context.issue;
+        // Get user configuration
+        client.config = await getUserConfig(client, owner, repo);
+        if (github.context.eventName !== "issues" &&
+            github.context.eventName !== "pull_request_target")
+            return;
+        const payload = github.context.payload;
+        if (payload.action === "labeled" || payload.action === "unlabeled") {
+            await run(client, payload);
+        }
     }
-  } catch (error) {
-    (0,core.setFailed)(error.message);
-  }
+    catch (error) {
+        (0,core.setFailed)(error.message);
+    }
 };
-
-
 // Run the script
 areas_action_run();
 
@@ -10001,6 +9963,6 @@ module.exports = require("zlib");;
 /******/ 	// module exports must be returned from runtime so entry inlining is disabled
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
-/******/ 	return __nccwpck_require__(109);
+/******/ 	return __nccwpck_require__(772);
 /******/ })()
 ;
