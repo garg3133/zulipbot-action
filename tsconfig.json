@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "./lib",
+    "target": "ES2017",
+    "allowJs": true
+  },
+  "exclude": ["node_modules", "**/dist", "lib"]
+}
