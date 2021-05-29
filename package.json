@@ -8,6 +8,7 @@
     "build-areas-action": "ncc build areas-action -o areas-action/dist --license licenses.txt",
     "build-activity-action": "ncc build activity-action -o activity-action/dist --license licenses.txt",
     "build-pulls-action": "ncc build pulls-action -o pulls-action/dist --license licenses.txt",
+    "format": "prettier --write **/*.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -29,6 +30,7 @@
   },
   "devDependencies": {
     "@vercel/ncc": "^0.27.0",
+    "prettier": "^2.3.0",
     "typescript": "^4.3.2"
   }
 }
