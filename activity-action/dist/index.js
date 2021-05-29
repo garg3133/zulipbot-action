@@ -2,7 +2,7 @@ module.exports =
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 247:
+/***/ 378:
 /***/ ((__unused_webpack_module, __webpack_exports__, __nccwpck_require__) => {
 
 "use strict";
@@ -13,556 +13,456 @@ __nccwpck_require__.r(__webpack_exports__);
 var core = __nccwpck_require__(186);
 // EXTERNAL MODULE: ./node_modules/@actions/github/lib/github.js
 var github = __nccwpck_require__(438);
-// CONCATENATED MODULE: ./client_config/client.js
-
+// CONCATENATED MODULE: ./lib/client_config/client.js
 
 
 const getClient = () => {
-  const token = core.getInput("token", { required: true });
-  const client = github.getOctokit("", { auth: token });
-
-  return client;
+    const token = core.getInput("token", { required: true });
+    const client = github.getOctokit("", { auth: token });
+    return client;
 };
-
 const getClientLogin = async (client) => {
-  let response;
-
-  try {
-    response = await client.users.getAuthenticated();
-  } catch (error) {
-    throw new Error(
-      `Received unexpected API status code ${error.status} while requesting for bot's username.`
-    );
-  }
-
-  const login = response.data.login;
-  if (!login) {
-    throw new Error("Unable to get bot's username.");
-  }
-
-  return login;
+    let response;
+    try {
+        response = await client.users.getAuthenticated();
+    }
+    catch (error) {
+        throw new Error(`Received unexpected API status code ${error.status} while requesting for bot's username.`);
+    }
+    const login = response.data.login;
+    if (!login) {
+        throw new Error("Unable to get bot's username.");
+    }
+    return login;
 };
 
-// CONCATENATED MODULE: ./activity-action/config/getActionConfig.js
-
+// CONCATENATED MODULE: ./lib/activity-action/config/getActionConfig.js
 
 function getActionConfig() {
-  const config = new Object();
-
-  config.issue_assigned_label = (0,core.getInput)("issue_assigned_label");
-  config.skip_issue_with_label = (0,core.getInput)("skip_issue_with_label");
-  config.skip_issue_with_pull_label = (0,core.getInput)("skip_issue_with_pull_label");
-  config.clear_closed_issue = (0,core.getInput)("clear_closed_issue") === "true";
-  config.days_until_warning = parseInt(
-    (0,core.getInput)("days_until_warning", { required: true })
-  );
-  config.days_until_unassign = parseInt(
-    (0,core.getInput)("days_until_unassign", { required: true })
-  );
-  config.assign_pull_to_reviewer =
-    (0,core.getInput)("assign_pull_to_reviewer") === "true";
-
-  console.log("Config:", config);
-
-  return config;
+    const config = new Object();
+    config.issue_assigned_label = (0,core.getInput)("issue_assigned_label");
+    config.skip_issue_with_label = (0,core.getInput)("skip_issue_with_label");
+    config.skip_issue_with_pull_label = (0,core.getInput)("skip_issue_with_pull_label");
+    config.clear_closed_issue = (0,core.getInput)("clear_closed_issue") === "true";
+    config.days_until_warning = parseInt((0,core.getInput)("days_until_warning", { required: true }));
+    config.days_until_unassign = parseInt((0,core.getInput)("days_until_unassign", { required: true }));
+    config.assign_pull_to_reviewer =
+        (0,core.getInput)("assign_pull_to_reviewer") === "true";
+    console.log("Config:", config);
+    return config;
 }
 
 // EXTERNAL MODULE: external "fs"
 var external_fs_ = __nccwpck_require__(747);
-// CONCATENATED MODULE: ./utils.js
+// CONCATENATED MODULE: ./lib/utils.js
 /**
  * Sorts and removes duplicate elements from a given array.
  *
  * @param {Array} array Array to remove duplicates from.
  * @return {Array} Sorted array containing only unique entries.
  */
-
 const deduplicate = (array) => {
-  return Array.from(new Set(array)).sort();
+    return Array.from(new Set(array)).sort();
 };
-
 /**
  * Retrieves all pages of data from a node-github method.
  * @param {String} path Path of the method in the format "api.method".
  * @param {Object} parameters Parameters to pass to the method.
  * @return {Array} Array of all data entries.
  */
-
 const getAllPages = async (client, path, parameters) => {
-  const [api, method] = path.split(".");
-  const options = client[api][method].endpoint.merge(parameters);
-  const responses = await client.paginate(options);
-
-  return responses;
+    const [api, method] = path.split(".");
+    const options = client[api][method].endpoint.merge(parameters);
+    const responses = await client.paginate(options);
+    return responses;
 };
 
-// CONCATENATED MODULE: ./structures/Template.js
-
+// CONCATENATED MODULE: ./lib/structures/Template.js
 
 class Template {
-  constructor(client, name, content) {
-    /**
-     * The client that instantiated this template
-     * @type {Object}
-     */
-    this.client = client;
-
-    /**
-     * The name of this template
-     * @type {string}
-     */
-    this.name = name;
-
-    /**
-     * The content of this template
-     * @type {string}
-     */
-    this.content = content;
-  }
-
-  /**
-   * Finds comments generated from templates on a issue/pull request.
-   *
-   * @param {Object} repo Repository object of the PR/issue.
-   * @return {Array} Array of filtered template comments from the client user.
-   */
-
-  async getComments(parameters) {
-    const method = "issues.listComments";
-    const comments = await getAllPages(this.client, method, parameters);
-
-    const templateComments = comments.filter((comment) => {
-      // Use end of template comments to check if comment is from template
-      const matched = comment.body.endsWith(`<!-- ${this.name} -->`);
-      const fromClient = comment.user.login === this.client.username;
-      return matched && fromClient;
-    });
-
-    return templateComments;
-  }
-
-  /**
-   * Formats template content with values from a given context.
-   *
-   * @param {Object} context Context with names/values of variables to format
-   * @return {String} Formatted template content.
-   */
-
-  format(context) {
-    let content = this.content;
-    for (const variable of Object.entries(context)) {
-      const [expression, value] = variable;
-      content = content.replace(new RegExp(`{${expression}}`, "g"), value);
+    constructor(client, name, content) {
+        /**
+         * The client that instantiated this template
+         * @type {Object}
+         */
+        this.client = client;
+        /**
+         * The name of this template
+         * @type {string}
+         */
+        this.name = name;
+        /**
+         * The content of this template
+         * @type {string}
+         */
+        this.content = content;
     }
-
-    return content;
-  }
+    /**
+     * Finds comments generated from templates on a issue/pull request.
+     *
+     * @param {Object} repo Repository object of the PR/issue.
+     * @return {Array} Array of filtered template comments from the client user.
+     */
+    async getComments(parameters) {
+        const method = "issues.listComments";
+        const comments = await getAllPages(this.client, method, parameters);
+        const templateComments = comments.filter((comment) => {
+            // Use end of template comments to check if comment is from template
+            const matched = comment.body.endsWith(`<!-- ${this.name} -->`);
+            const fromClient = comment.user.login === this.client.username;
+            return matched && fromClient;
+        });
+        return templateComments;
+    }
+    /**
+     * Formats template content with values from a given context.
+     *
+     * @param {Object} context Context with names/values of variables to format
+     * @return {String} Formatted template content.
+     */
+    format(context) {
+        let content = this.content;
+        for (const variable of Object.entries(context)) {
+            const [expression, value] = variable;
+            content = content.replace(new RegExp(`{${expression}}`, "g"), value);
+        }
+        return content;
+    }
 }
 
-// CONCATENATED MODULE: ./client_config/getTemplates.js
-
+// CONCATENATED MODULE: ./lib/client_config/getTemplates.js
 
 
 
 async function getTemplates(client, owner, repo) {
-  const templatesMap = new Map();
-
-  const defaultTemplates = external_fs_.readdirSync(`${__dirname}/../templates`);
-  const userTemplates = await getUserTemplates(client, owner, repo);
-
-  for (const file of defaultTemplates) {
-    let content;
-
-    if (userTemplates.includes(file)) {
-      content = await getUserTemplate(client, owner, repo, file);
-    } else {
-      content = external_fs_.readFileSync(`${__dirname}/../templates/${file}`, "utf8");
+    const templatesMap = new Map();
+    const defaultTemplates = external_fs_.readdirSync(`${__dirname}/../templates`);
+    const userTemplates = await getUserTemplates(client, owner, repo);
+    for (const file of defaultTemplates) {
+        let content;
+        if (userTemplates.includes(file)) {
+            content = await getUserTemplate(client, owner, repo, file);
+        }
+        else {
+            content = external_fs_.readFileSync(`${__dirname}/../templates/${file}`, "utf8");
+        }
+        const [name] = file.split(".md");
+        const template = new Template(client, name, content);
+        templatesMap.set(name, template);
     }
-
-    const [name] = file.split(".md");
-    const template = new Template(client, name, content);
-    templatesMap.set(name, template);
-  }
-
-  return templatesMap;
+    return templatesMap;
 }
-
 const getUserTemplates = async (client, owner, repo) => {
-  const templatesDirPath = (0,core.getInput)("templates-dir-path");
-  if (!templatesDirPath) return [];
-
-  let response;
-
-  try {
-    response = await client.repos.getContent({
-      owner,
-      repo,
-      path: templatesDirPath,
-    });
-  } catch (error) {
-    if (error.status === 404) {
-      throw new Error(
-        "Templates directory not found. Please check the path in your workflow file."
-      );
-    } else {
-      throw new Error(
-        `Received unexpected API status code while requesting templates dir: ${error.status}`
-      );
+    const templatesDirPath = (0,core.getInput)("templates-dir-path");
+    if (!templatesDirPath)
+        return [];
+    let response;
+    try {
+        response = await client.repos.getContent({
+            owner,
+            repo,
+            path: templatesDirPath,
+        });
     }
-  }
-
-  const userTemplates = response.data;
-
-  if (!Array.isArray(userTemplates)) {
-    throw new Error(
-      "Please provide correct templates directory path in your workflow file."
-    );
-  }
-
-  const userTemplatesNameArray = userTemplates
-    .filter((template) => template.type === "file")
-    .map((template) => template.name);
-
-  return userTemplatesNameArray;
+    catch (error) {
+        if (error.status === 404) {
+            throw new Error("Templates directory not found. Please check the path in your workflow file.");
+        }
+        else {
+            throw new Error(`Received unexpected API status code while requesting templates dir: ${error.status}`);
+        }
+    }
+    const userTemplates = response.data;
+    if (!Array.isArray(userTemplates)) {
+        throw new Error("Please provide correct templates directory path in your workflow file.");
+    }
+    const userTemplatesNameArray = userTemplates
+        .filter((template) => template.type === "file")
+        .map((template) => template.name);
+    return userTemplatesNameArray;
 };
-
 const getUserTemplate = async (client, owner, repo, templateName) => {
-  const templatesDirPath = (0,core.getInput)("templates-dir-path");
-  const templateFilePath = templatesDirPath + "/" + templateName;
-
-  let response;
-
-  try {
-    response = await client.repos.getContent({
-      owner,
-      repo,
-      path: templateFilePath,
-    });
-  } catch (error) {
-    if (error.status === 404) {
-      throw new Error(`Template file ${templateName} not found.`);
-    } else {
-      throw new Error(
-        `Received unexpected API status code while requesting ${templateName} template: ${error.status}`
-      );
+    const templatesDirPath = (0,core.getInput)("templates-dir-path");
+    const templateFilePath = templatesDirPath + "/" + templateName;
+    let response;
+    try {
+        response = await client.repos.getContent({
+            owner,
+            repo,
+            path: templateFilePath,
+        });
     }
-  }
-  const templateDataEncoded = response.data.content;
-
-  if (!templateDataEncoded) {
-    throw new Error(
-      `Unable to read the contents of the template ${templateName}.`
-    );
-  }
-
-  const templateData = Buffer.from(templateDataEncoded, "base64").toString(
-    "utf-8"
-  );
-  return templateData;
+    catch (error) {
+        if (error.status === 404) {
+            throw new Error(`Template file ${templateName} not found.`);
+        }
+        else {
+            throw new Error(`Received unexpected API status code while requesting ${templateName} template: ${error.status}`);
+        }
+    }
+    const templateDataEncoded = response.data.content;
+    if (!templateDataEncoded) {
+        throw new Error(`Unable to read the contents of the template ${templateName}.`);
+    }
+    const templateData = Buffer.from(templateDataEncoded, "base64").toString("utf-8");
+    return templateData;
 };
 
-// CONCATENATED MODULE: ./structures/ReferenceSearch.js
-
+// CONCATENATED MODULE: ./lib/structures/ReferenceSearch.js
 /* eslint-disable array-element-newline */
-
 const keywords = [
-  "close", "closes", "closed",
-  "fix", "fixes", "fixed",
-  "resolve", "resolves", "resolved"
+    "close", "closes", "closed",
+    "fix", "fixes", "fixed",
+    "resolve", "resolves", "resolved"
 ];
-
 /* eslint-enable array-element-newline */
-
 class ReferenceSearch {
-  constructor(client, pull, owner, repo) {
-    /**
-     * The client that instantiated this template
-     * @type {Object}
-     */
-    this.client = client;
-
-    /**
-     * The number of the pull request this search applies to
-     * @type {Number}
-     */
-    this.number = pull.number;
-
-    /**
-     * The description of the pull request this search applies to
-     * @type {Number}
-     */
-    this.body = pull.body;
-
-    /**
-     * The name of the repository of the pull request this search applies to
-     * @type {Object}
-     */
-    this.repoName = repo;
-
-    /**
-     * The owner of the repository of the pull request this search applies to
-     * @type {Object}
-     */
-    this.repoOwner = owner;
-  }
-
-  /**
-   * Finds all open referenced issues from a given string
-   * by identifying keywords specified above.
-   *
-   * Keywords are sourced from
-   * https://help.github.com/articles/closing-issues-using-keywords/
-   *
-   * Referenced issues are only closed when pull requests are merged,
-   * not necessarily when commits are merged.
-   *
-   * @param {Array} strings Strings to find references in.
-   * @return {Array} Sorted array of all referenced issue numbers.
-   */
-
-  async find(strings) {
-    let matches = [];
-    strings.forEach(string => {
-      const wordMatches = keywords.map(tense => {
-        const regex = new RegExp(`${tense}:? +#([0-9]+)`, "i");
-        const match = string.match(regex);
-        return match ? match[1] : match;
-      });
-      matches = matches.concat(wordMatches);
-    });
-    // check matches for valid issue references
-    const statusCheck = matches.map(async number => {
-      if (!number) return false;
-      const issue = await this.client.issues.get({
-        owner: this.repoOwner, repo: this.repoName, issue_number: number
-      });
-      // valid references are open issues
-      const valid = !issue.data.pull_request && issue.data.state === "open";
-      return valid ? number : false;
-    });
-    // statusCheck is an array of promises, so use Promise.all
-    const matchStatuses = await Promise.all(statusCheck);
-    // remove strings that didn't contain any references
-    const references = matchStatuses.filter(e => e);
-    console.log("Referenced issues: ", references);
-
-    return references;
-  }
-
-  async getBody() {
-    const bodyRefs = await this.find([this.body]);
-    return bodyRefs;
-  }
-
-  async getCommits() {
-    const commits = await this.client.pulls.listCommits({
-      owner: this.repoOwner, repo: this.repoName, pull_number: this.number
-    });
-
-    const msgs = commits.data.map(c => c.commit.message);
-    console.log("Commit messages:", msgs);
-    const commitRefs = await this.find(msgs);
-
-    return commitRefs;
-  }
-}
-
-
-// CONCATENATED MODULE: ./activity-action/activity/scrapeInactiveIssues.js
-async function scrapeInactiveIssues(
-  client,
-  references,
-  issues,
-  owner,
-  repo
-) {
-  const warn_ms = client.config.days_until_warning * 86400000;
-  const abandon_ms = client.config.days_until_unassign * 86400000;
-  console.log("Warn ms:", warn_ms);
-  console.log("Abandon ms:", abandon_ms);
-
-  for (const issue of issues) {
-    const isPR = issue.pull_request;
-    if (isPR) continue;
-
-    const skip_issue = issue.labels.find((label) => {
-      return label.name === client.config.skip_issue_with_label;
-    });
-    if (skip_issue) continue;
-
-    let time = Date.parse(issue.updated_at);
-    const number = issue.number;
-    const issueTag = `${repo}/${number}`;
-
-    // Update `time` to the latest activity on issue or linked PRs.
-    if (time < references.get(issueTag)) time = references.get(issueTag);
-
-    // Use `abandon_ms` as warning comment on the issue also
-    // updates the issue.
-    if (time + abandon_ms > Date.now()) continue;
-
-    // `abandon_ms` time has passed since the last update...
-
-    const inactiveWarningTemplate = client.templates.get("inactiveWarning");
-
-    const commentsByTemplate = await inactiveWarningTemplate.getComments({
-      owner,
-      repo,
-      issue_number: number,
-    });
-
-    const relevantWarningComment = commentsByTemplate.find((comment) => {
-      // No progress was made after warning comment.
-      const comment_ms = Date.parse(comment.created_at);
-
-      // Check for (+)(-)2sec as sometimes comment_ms may differ from
-      // issue last updated time by a sec or so.
-      return comment_ms >= time - 2000 && comment_ms <= time + 2000;
-    });
-
-    console.log("\nCurrently on issue:", number);
-    console.log("Comments posted by activity action:", commentsByTemplate);
-    console.log("Relevant comment:", relevantWarningComment);
-    console.log("Issue last updated at: ", time, issue.updated_at);
-
-    if (relevantWarningComment) {
-      console.log(
-        "Warning time: ",
-        Date.parse(relevantWarningComment.created_at)
-      );
-      // `abandon_ms` time has passed after the last update and
-      // the last update was the warning given by the action.
-      const assignees = issue.assignees.map((assignee) => assignee.login);
-
-      client.issues.removeAssignees({
-        owner,
-        repo,
-        issue_number: number,
-        assignees: assignees,
-      });
-
-      const abandonWarning = client.templates.get("abandonWarning").format({
-        assignee: assignees.join(", @"),
-        total: (abandon_ms + warn_ms) / 86400000,
-        username: client.username,
-      });
-
-      const id = relevantWarningComment.id;
-      client.issues.updateComment({
-        owner,
-        repo,
-        comment_id: id,
-        body: abandonWarning,
-      });
-    } else if (time + warn_ms <= Date.now()) {
-      // `warn_ms` time as passed since the last update.
-      const assignees = issue.assignees.map((assignee) => assignee.login);
-
-      const inactiveWarning = inactiveWarningTemplate.format({
-        assignee: assignees.join(", @"),
-        remind: client.config.days_until_warning,
-        abandon: client.config.days_until_unassign,
-        username: client.username,
-      });
-
-      client.issues.createComment({
-        owner,
-        repo,
-        issue_number: number,
-        body: inactiveWarning,
-      });
+    constructor(client, pull, owner, repo) {
+        /**
+         * The client that instantiated this template
+         * @type {Object}
+         */
+        this.client = client;
+        /**
+         * The number of the pull request this search applies to
+         * @type {Number}
+         */
+        this.number = pull.number;
+        /**
+         * The description of the pull request this search applies to
+         * @type {Number}
+         */
+        this.body = pull.body;
+        /**
+         * The name of the repository of the pull request this search applies to
+         * @type {Object}
+         */
+        this.repoName = repo;
+        /**
+         * The owner of the repository of the pull request this search applies to
+         * @type {Object}
+         */
+        this.repoOwner = owner;
     }
-  }
+    /**
+     * Finds all open referenced issues from a given string
+     * by identifying keywords specified above.
+     *
+     * Keywords are sourced from
+     * https://help.github.com/articles/closing-issues-using-keywords/
+     *
+     * Referenced issues are only closed when pull requests are merged,
+     * not necessarily when commits are merged.
+     *
+     * @param {Array} strings Strings to find references in.
+     * @return {Array} Sorted array of all referenced issue numbers.
+     */
+    async find(strings) {
+        let matches = [];
+        strings.forEach(string => {
+            const wordMatches = keywords.map(tense => {
+                const regex = new RegExp(`${tense}:? +#([0-9]+)`, "i");
+                const match = string.match(regex);
+                return match ? match[1] : match;
+            });
+            matches = matches.concat(wordMatches);
+        });
+        // check matches for valid issue references
+        const statusCheck = matches.map(async (number) => {
+            if (!number)
+                return false;
+            const issue = await this.client.issues.get({
+                owner: this.repoOwner, repo: this.repoName, issue_number: number
+            });
+            // valid references are open issues
+            const valid = !issue.data.pull_request && issue.data.state === "open";
+            return valid ? number : false;
+        });
+        // statusCheck is an array of promises, so use Promise.all
+        const matchStatuses = await Promise.all(statusCheck);
+        // remove strings that didn't contain any references
+        const references = matchStatuses.filter(e => e);
+        console.log("Referenced issues: ", references);
+        return references;
+    }
+    async getBody() {
+        const bodyRefs = await this.find([this.body]);
+        return bodyRefs;
+    }
+    async getCommits() {
+        const commits = await this.client.pulls.listCommits({
+            owner: this.repoOwner, repo: this.repoName, pull_number: this.number
+        });
+        const msgs = commits.data.map(c => c.commit.message);
+        console.log("Commit messages:", msgs);
+        const commitRefs = await this.find(msgs);
+        return commitRefs;
+    }
 }
 
-// CONCATENATED MODULE: ./activity-action/activity/scrapePulls.js
+// CONCATENATED MODULE: ./lib/activity-action/activity/scrapeInactiveIssues.js
+async function scrapeInactiveIssues(client, references, issues, owner, repo) {
+    const warn_ms = client.config.days_until_warning * 86400000;
+    const abandon_ms = client.config.days_until_unassign * 86400000;
+    console.log("Warn ms:", warn_ms);
+    console.log("Abandon ms:", abandon_ms);
+    for (const issue of issues) {
+        const isPR = issue.pull_request;
+        if (isPR)
+            continue;
+        const skip_issue = issue.labels.find((label) => {
+            return label.name === client.config.skip_issue_with_label;
+        });
+        if (skip_issue)
+            continue;
+        let time = Date.parse(issue.updated_at);
+        const number = issue.number;
+        const issueTag = `${repo}/${number}`;
+        // Update `time` to the latest activity on issue or linked PRs.
+        if (time < references.get(issueTag))
+            time = references.get(issueTag);
+        // Use `abandon_ms` as warning comment on the issue also
+        // updates the issue.
+        if (time + abandon_ms > Date.now())
+            continue;
+        // `abandon_ms` time has passed since the last update...
+        const inactiveWarningTemplate = client.templates.get("inactiveWarning");
+        const commentsByTemplate = await inactiveWarningTemplate.getComments({
+            owner,
+            repo,
+            issue_number: number,
+        });
+        const relevantWarningComment = commentsByTemplate.find((comment) => {
+            // No progress was made after warning comment.
+            const comment_ms = Date.parse(comment.created_at);
+            // Check for (+)(-)2sec as sometimes comment_ms may differ from
+            // issue last updated time by a sec or so.
+            return comment_ms >= time - 2000 && comment_ms <= time + 2000;
+        });
+        console.log("\nCurrently on issue:", number);
+        console.log("Comments posted by activity action:", commentsByTemplate);
+        console.log("Relevant comment:", relevantWarningComment);
+        console.log("Issue last updated at: ", time, issue.updated_at);
+        if (relevantWarningComment) {
+            console.log("Warning time: ", Date.parse(relevantWarningComment.created_at));
+            // `abandon_ms` time has passed after the last update and
+            // the last update was the warning given by the action.
+            const assignees = issue.assignees.map((assignee) => assignee.login);
+            client.issues.removeAssignees({
+                owner,
+                repo,
+                issue_number: number,
+                assignees: assignees,
+            });
+            const abandonWarning = client.templates.get("abandonWarning").format({
+                assignee: assignees.join(", @"),
+                total: (abandon_ms + warn_ms) / 86400000,
+                username: client.username,
+            });
+            const id = relevantWarningComment.id;
+            client.issues.updateComment({
+                owner,
+                repo,
+                comment_id: id,
+                body: abandonWarning,
+            });
+        }
+        else if (time + warn_ms <= Date.now()) {
+            // `warn_ms` time as passed since the last update.
+            const assignees = issue.assignees.map((assignee) => assignee.login);
+            const inactiveWarning = inactiveWarningTemplate.format({
+                assignee: assignees.join(", @"),
+                remind: client.config.days_until_warning,
+                abandon: client.config.days_until_unassign,
+                username: client.username,
+            });
+            client.issues.createComment({
+                owner,
+                repo,
+                issue_number: number,
+                body: inactiveWarning,
+            });
+        }
+    }
+}
 
+// CONCATENATED MODULE: ./lib/activity-action/activity/scrapePulls.js
 
 
 
 async function scrapePulls(client, pulls, owner, repo) {
-  // Check all open Pull Requests and their commits and add to
-  // `referenceList` the issue linked with the PR/commit as key
-  // and the time the PR was last updated as value.
-  const referenceList = new Map();
-
-  for (const pull of pulls) {
-    let time = Date.parse(pull.updated_at);
-    const number = pull.number;
-
-    console.log("Currently on PR: ", number);
-
-    if (client.config.skip_issue_with_pull_label) {
-      // Set time = Date.now() for the PR if it contains this
-      // label so that the linked issue gets skipped
-      // automatically.
-      console.log("Inside skip issue with pull label");
-      const skip_linked_issue = pull.labels.find((label) => {
-        return label.name === client.config.skip_issue_with_pull_label;
-      });
-
-      if (skip_linked_issue) time = Date.now();
-      console.log("Pull Label for skipping issue:", skip_linked_issue);
-    }
-
-    // Find all the linked issues to the PR and its commits.
-    const references = new ReferenceSearch(client, pull, owner, repo);
-    const bodyRefs = await references.getBody();
-    const commitRefs = await references.getCommits();
-
-    if (bodyRefs.length || commitRefs.length) {
-      const references = commitRefs.concat(bodyRefs);
-
-      // sort and remove duplicate references
-      const refs = deduplicate(references);
-
-      refs.forEach((ref) => {
-        const issue_tag = `${repo}/${ref}`;
-        if (referenceList.has(issue_tag)) {
-          // compare time and add the most latest time.
-          const setTime = referenceList.get(issue_tag);
-          if (time > setTime) referenceList.set(issue_tag, time);
-        } else {
-          referenceList.set(issue_tag, time);
+    // Check all open Pull Requests and their commits and add to
+    // `referenceList` the issue linked with the PR/commit as key
+    // and the time the PR was last updated as value.
+    const referenceList = new Map();
+    for (const pull of pulls) {
+        let time = Date.parse(pull.updated_at);
+        const number = pull.number;
+        console.log("Currently on PR: ", number);
+        if (client.config.skip_issue_with_pull_label) {
+            // Set time = Date.now() for the PR if it contains this
+            // label so that the linked issue gets skipped
+            // automatically.
+            console.log("Inside skip issue with pull label");
+            const skip_linked_issue = pull.labels.find((label) => {
+                return label.name === client.config.skip_issue_with_pull_label;
+            });
+            if (skip_linked_issue)
+                time = Date.now();
+            console.log("Pull Label for skipping issue:", skip_linked_issue);
         }
-      });
+        // Find all the linked issues to the PR and its commits.
+        const references = new ReferenceSearch(client, pull, owner, repo);
+        const bodyRefs = await references.getBody();
+        const commitRefs = await references.getCommits();
+        if (bodyRefs.length || commitRefs.length) {
+            const references = commitRefs.concat(bodyRefs);
+            // sort and remove duplicate references
+            const refs = deduplicate(references);
+            refs.forEach((ref) => {
+                const issue_tag = `${repo}/${ref}`;
+                if (referenceList.has(issue_tag)) {
+                    // compare time and add the most latest time.
+                    const setTime = referenceList.get(issue_tag);
+                    if (time > setTime)
+                        referenceList.set(issue_tag, time);
+                }
+                else {
+                    referenceList.set(issue_tag, time);
+                }
+            });
+        }
     }
-  }
-  // Pulls scraping complete
-  // referenceList now contains all the issues having an open
-  // linked PR with the time at which its most acive was last
-  // updated.
-
-  console.log("All issue references found...");
-  for (const [key, value] of referenceList) {
-    console.log(key, value);
-  }
-  // Bring in all open and assigned issues.
-  const issues = await getAllPages(client, "issues.listForRepo", {
-    owner,
-    repo,
-    assignee: "*",
-  });
-
-  await scrapeInactiveIssues(client, referenceList, issues, owner, repo);
+    // Pulls scraping complete
+    // referenceList now contains all the issues having an open
+    // linked PR with the time at which its most acive was last
+    // updated.
+    console.log("All issue references found...");
+    for (const [key, value] of referenceList) {
+        console.log(key, value);
+    }
+    // Bring in all open and assigned issues.
+    const issues = await getAllPages(client, "issues.listForRepo", {
+        owner,
+        repo,
+        assignee: "*",
+    });
+    await scrapeInactiveIssues(client, referenceList, issues, owner, repo);
 }
 
-// CONCATENATED MODULE: ./activity-action/activity/activity.js
-
+// CONCATENATED MODULE: ./lib/activity-action/activity/activity.js
 
 
 const run = async (client, owner, repo) => {
-  // Bring in all open pull requests.
-  const pulls = await getAllPages(client, "pulls.list", {
-    owner,
-    repo,
-  });
-
-  await scrapePulls(client, pulls, owner, repo);
+    // Bring in all open pull requests.
+    const pulls = await getAllPages(client, "pulls.list", {
+        owner,
+        repo,
+    });
+    await scrapePulls(client, pulls, owner, repo);
 };
 
-// CONCATENATED MODULE: ./activity-action/index.js
-
+// CONCATENATED MODULE: ./lib/activity-action/index.js
 
 
 
@@ -570,39 +470,33 @@ const run = async (client, owner, repo) => {
 
 
 const activity_action_run = async () => {
-  try {
-    const client = getClient();
-
-    // Get bot's username
-    client.username = await getClientLogin(client);
-
-    // Get action's config
-    client.config = getActionConfig();
-
-    const { owner, repo } = github.context.issue;
-
-    // Get templates
-    client.templates = await getTemplates(client, owner, repo);
-
-    const payload = github.context.payload;
-    console.log("Payload:", payload);
-
-    if (github.context.eventName === "issues" && client.config.issue_assigned_label) {
-      if (payload.action === "assigned" || payload.action === "unassigned") {
-        // Do something
-      }
-    } else if (github.context.eventName === "schedule") {
-      run(client, owner, repo);
+    try {
+        const client = getClient();
+        // Get bot's username
+        client.username = await getClientLogin(client);
+        // Get action's config
+        client.config = getActionConfig();
+        const { owner, repo } = github.context.issue;
+        // Get templates
+        client.templates = await getTemplates(client, owner, repo);
+        const payload = github.context.payload;
+        console.log("Payload:", payload);
+        if (github.context.eventName === "issues" && client.config.issue_assigned_label) {
+            if (payload.action === "assigned" || payload.action === "unassigned") {
+                // Do something
+            }
+        }
+        else if (github.context.eventName === "schedule") {
+            run(client, owner, repo);
+        }
+        // if (payload.action === "labeled" || payload.action === "unlabeled") {
+        //   areaLabel.run(client, payload);
+        // }
     }
-
-    // if (payload.action === "labeled" || payload.action === "unlabeled") {
-    //   areaLabel.run(client, payload);
-    // }
-  } catch (error) {
-    (0,core.setFailed)(error.message);
-  }
+    catch (error) {
+        (0,core.setFailed)(error.message);
+    }
 };
-
 // Run the script
 activity_action_run();
 
@@ -6551,6 +6445,6 @@ module.exports = require("zlib");;
 /******/ 	// module exports must be returned from runtime so entry inlining is disabled
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
-/******/ 	return __nccwpck_require__(247);
+/******/ 	return __nccwpck_require__(378);
 /******/ })()
 ;
