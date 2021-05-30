@@ -26,10 +26,13 @@
   "dependencies": {
     "@actions/core": "^1.2.6",
     "@actions/github": "^4.0.0",
+    "@types/adm-zip": "^0.4.34",
     "adm-zip": "^0.5.5",
     "js-yaml": "^4.1.0"
   },
   "devDependencies": {
+    "@octokit/webhooks-types": "^3.75.2",
+    "@types/js-yaml": "^4.0.1",
     "@vercel/ncc": "^0.27.0",
     "prettier": "^2.3.0",
     "typescript": "^4.3.2"
