@@ -1,15 +1,23 @@
 import { getInput } from "@actions/core";
-import * as fs from "fs";
 import Template from "../structures/Template";
+import * as fs from "fs";
 
-export default async function getTemplates(client, owner, repo) {
-  const templatesMap = new Map();
+import { Client } from "../types";
 
-  const defaultTemplates = fs.readdirSync(`${__dirname}/../templates`);
-  const userTemplates = await getUserTemplates(client, owner, repo);
+export default async function getTemplates(
+  client: Client,
+  owner: string,
+  repo: string
+): Promise<Map<string, Template>> {
+  const templatesMap: Map<string, Template> = new Map();
+
+  const defaultTemplates: string[] = fs.readdirSync(
+    `${__dirname}/../templates`
+  );
+  const userTemplates: string[] = await getUserTemplates(client, owner, repo);
 
   for (const file of defaultTemplates) {
-    let content;
+    let content: string;
 
     if (userTemplates.includes(file)) {
       content = await getUserTemplate(client, owner, repo, file);
@@ -25,18 +33,28 @@ export default async function getTemplates(client, owner, repo) {
   return templatesMap;
 }
 
-const getUserTemplates = async (client, owner, repo) => {
-  const templatesDirPath = getInput("templates-dir-path");
+const getUserTemplates = async (
+  client: Client,
+  owner: string,
+  repo: string
+): Promise<string[]> => {
+  const templatesDirPath: string = getInput("templates-dir-path");
   if (!templatesDirPath) return [];
 
-  let response;
+  let userTemplatesNameArray: string[] | undefined;
 
   try {
-    response = await client.repos.getContent({
+    const { data } = await client.repos.getContent({
       owner,
       repo,
       path: templatesDirPath,
     });
+
+    if (Array.isArray(data)) {
+      userTemplatesNameArray = data
+        .filter((template) => template.type === "file")
+        .map((template) => template.name);
+    }
   } catch (error) {
     if (error.status === 404) {
       throw new Error(
@@ -49,33 +67,39 @@ const getUserTemplates = async (client, owner, repo) => {
     }
   }
 
-  const userTemplates = response.data;
-
-  if (!Array.isArray(userTemplates)) {
+  if (userTemplatesNameArray === undefined) {
+    // If templatesDirPath is not a path to a directory
+    // => `data` will be an object and not an array
+    // => userTemplatesNameArray will be undefined.
     throw new Error(
       "Please provide correct templates directory path in your workflow file."
     );
   }
 
-  const userTemplatesNameArray = userTemplates
-    .filter((template) => template.type === "file")
-    .map((template) => template.name);
-
   return userTemplatesNameArray;
 };
 
-const getUserTemplate = async (client, owner, repo, templateName) => {
-  const templatesDirPath = getInput("templates-dir-path");
+const getUserTemplate = async (
+  client: Client,
+  owner: string,
+  repo: string,
+  templateName: string
+): Promise<string> => {
+  const templatesDirPath: string = getInput("templates-dir-path");
   const templateFilePath = templatesDirPath + "/" + templateName;
 
-  let response;
+  let templateDataEncoded: string | undefined;
 
   try {
-    response = await client.repos.getContent({
+    const { data } = await client.repos.getContent({
       owner,
       repo,
       path: templateFilePath,
     });
+
+    if ("content" in data) {
+      templateDataEncoded = data.content;
+    }
   } catch (error) {
     if (error.status === 404) {
       throw new Error(`Template file ${templateName} not found.`);
@@ -85,7 +109,6 @@ const getUserTemplate = async (client, owner, repo, templateName) => {
       );
     }
   }
-  const templateDataEncoded = response.data.content;
 
   if (!templateDataEncoded) {
     throw new Error(
