@@ -4,7 +4,10 @@
     "module": "commonjs",
     "allowJs": true,
     "rootDir": ".",
-    "outDir": "./lib"
+    "outDir": "./lib",
+    "strict": true,
+    "noImplicitAny": false,
+    "esModuleInterop": true
   },
   "exclude": ["node_modules", "**/dist", "lib"]
 }
