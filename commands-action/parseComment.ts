@@ -1,5 +1,15 @@
-export default function parseComment(client, comment) {
-  const commands = {};
+import { Client } from "../types";
+import { IssueComment } from "@octokit/webhooks-types";
+
+interface CommandsToRunInterface {
+  [key: string]: string;
+}
+
+export default function parseComment(
+  client: Client,
+  comment: IssueComment
+): CommandsToRunInterface {
+  const commands: CommandsToRunInterface = {};
   const commentBody = comment.body;
   const commenter = comment.user.login;
 
@@ -7,7 +17,7 @@ export default function parseComment(client, comment) {
 
   const regex = RegExp(`@${client.username} +(\\w+)( +(--\\w+|"[^"]+"))*`, "g");
   const parsed = commentBody.match(regex);
-  if(!parsed) return commands;
+  if (!parsed) return commands;
 
   parsed.forEach((command) => {
     const codeBlocks = [`\`\`\`\r\n${command}\r\n\`\`\``, `\`${command}\``];
@@ -19,6 +29,6 @@ export default function parseComment(client, comment) {
     commands[keyword] = args;
   });
 
-  console.log("Commands:" , commands);
+  console.log("Commands:", commands);
   return commands;
 }

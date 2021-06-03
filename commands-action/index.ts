@@ -6,12 +6,15 @@ import getBotCommands from "./commands/getBotCommands";
 import getTemplates from "../client_config/getTemplates";
 import parseComment from "./parseComment";
 
-const run = async () => {
+import { Client } from "../types";
+import { IssueCommentEvent } from "@octokit/webhooks-types";
+
+const run = async (): Promise<void> => {
   try {
     // Works for both issue comment and PR comment.
     if (context.eventName !== "issue_comment") return;
 
-    const client = getClient();
+    const client: Client = getClient();
 
     // Use promise.all() below??
 
@@ -29,7 +32,7 @@ const run = async () => {
     // Get templates
     client.templates = await getTemplates(client, owner, repo);
 
-    const payload = context.payload;
+    const payload = context.payload as IssueCommentEvent;
 
     if (payload.action === "created") {
       const commandsToRun = parseComment(client, payload.comment);
@@ -46,34 +49,6 @@ const run = async () => {
     setFailed(error.message);
   }
 };
-
-function parse_comment(client, payload) {
-  const data = payload.comment;
-  const commenter = data.user.login;
-  const body = data.body;
-  const username = client.username;
-
-  if (commenter === username || !body) return;
-
-  const prefix = RegExp(`@${username} +(\\w+)( +(--\\w+|"[^"]+"))*`, "g");
-  const parsed = body.match(prefix);
-  if (!parsed) return;
-
-  parsed.forEach((command) => {
-    const codeBlocks = [`\`\`\`\r\n${command}\r\n\`\`\``, `\`${command}\``];
-    if (codeBlocks.some((block) => body.includes(block))) return;
-    const [, keyword] = command.replace(/\s+/, " ").split(" ");
-    const args = command.replace(/\s+/, " ").split(" ").slice(2).join(" ");
-    const file = client.commands.get(keyword);
-
-    // Return {keyword: args}
-    // Return {keyword: {args: ..., ...:...}} incase of more data.
-
-    if (file) {
-      file.run.apply(client, [payload, commenter, args]);
-    }
-  });
-}
 
 // Run the script
 run();
