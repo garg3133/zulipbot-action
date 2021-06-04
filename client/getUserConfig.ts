@@ -1,13 +1,13 @@
 import { getInput } from "@actions/core";
 import { load as yaml_load } from "js-yaml";
 
-import { Client, UserConfig } from "../types";
+import { OctokitClient } from "../types";
 
 export default async function getUserConfig(
-  client: Client,
+  octokit: OctokitClient,
   owner: string,
   repo: string
-): Promise<UserConfig> {
+): Promise<object> {
   const config_file_path: string = getInput("config-file-path");
 
   const path_split: string[] = config_file_path.split(".");
@@ -21,7 +21,7 @@ export default async function getUserConfig(
   let config_data_encoded: string | undefined;
 
   try {
-    const { data } = await client.repos.getContent({
+    const { data } = await octokit.repos.getContent({
       owner,
       repo,
       path: config_file_path,
