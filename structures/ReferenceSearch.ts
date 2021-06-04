@@ -1,4 +1,4 @@
-import { Client } from "../types";
+import { OctokitClient } from "../types";
 import { PullRequest } from "@octokit/webhooks-types";
 
 /* eslint-disable array-element-newline */
@@ -18,14 +18,19 @@ const keywords: string[] = [
 /* eslint-enable array-element-newline */
 
 export default class ReferenceSearch {
-  client: Client;
+  octokit: OctokitClient;
   number: number;
   body: string | null;
   repoOwner: string;
   repoName: string;
 
-  constructor(client: Client, pull: PullRequest, owner: string, repo: string) {
-    this.client = client;
+  constructor(
+    octokit: OctokitClient,
+    pull: PullRequest,
+    owner: string,
+    repo: string
+  ) {
+    this.octokit = octokit;
     this.number = pull.number;
     this.body = pull.body;
     this.repoName = repo;
@@ -66,7 +71,7 @@ export default class ReferenceSearch {
         if (!match) return false;
         const number = parseInt(match);
 
-        const issue = await this.client.issues.get({
+        const issue = await this.octokit.issues.get({
           owner: this.repoOwner,
           repo: this.repoName,
           issue_number: number,
@@ -97,7 +102,7 @@ export default class ReferenceSearch {
   }
 
   async getCommits(): Promise<number[]> {
-    const commits = await this.client.pulls.listCommits({
+    const commits = await this.octokit.pulls.listCommits({
       owner: this.repoOwner,
       repo: this.repoName,
       pull_number: this.number,

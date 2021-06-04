@@ -1,56 +1,46 @@
+import { getOctokitLogin } from "../client/octokit";
+import { getAllPages } from "../utils";
+
 import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
 import { IssueComment } from "@octokit/webhooks-types";
-import { Client } from "../types";
-
-import { getAllPages } from "../utils";
+import { OctokitClient } from "../types";
 
 type ListCommentsParameters =
   RestEndpointMethodTypes["issues"]["listComments"]["parameters"];
 
 export default class Template {
-  client: Client;
+  octokit: OctokitClient;
   name: string;
   content: string;
 
-  constructor(client: Client, name: string, content: string) {
-    /**
-     * The client that instantiated this template
-     */
-    this.client = client;
-
-    /**
-     * The name of this template
-     */
+  constructor(octokit: OctokitClient, name: string, content: string) {
+    this.octokit = octokit;
     this.name = name;
-
-    /**
-     * The content of this template
-     * @type {string}
-     */
     this.content = content;
   }
 
   /**
    * Finds comments generated from templates on a issue/pull request.
    *
-   * @param {Object} repo Repository object of the PR/issue.
-   * @return {Array} Array of filtered template comments from the client user.
+   * @param {Object} parameters Parameters to be passed to issues.listComments.
+   * @return {Array} Array of filtered template comments from the octokit user.
    */
 
   async getComments(
     parameters: ListCommentsParameters
   ): Promise<IssueComment[]> {
     const [api, method] = ["issues", "listComments"];
+    const clientUsername = await getOctokitLogin(this.octokit);
 
     const comments: IssueComment[] = await getAllPages<
       ListCommentsParameters,
       IssueComment
-    >(this.client, api, method, parameters);
+    >(this.octokit, api, method, parameters);
 
     const templateComments = comments.filter((comment: IssueComment) => {
       // Use end of template comments to check if comment is from template
       const matched = comment.body.endsWith(`<!-- ${this.name} -->`);
-      const fromClient = comment.user.login === this.client.username;
+      const fromClient = comment.user.login === clientUsername;
       return matched && fromClient;
     });
 
