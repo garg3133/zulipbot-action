@@ -1,19 +1,21 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
-import { Client } from "../types";
+import { OctokitClient } from "../types";
 
-export const getClient = (): Client => {
+export const getOctokit = (): OctokitClient => {
   const token: string = core.getInput("token", { required: true });
-  const client: Client = github.getOctokit("", { auth: token });
+  const octokit: OctokitClient = github.getOctokit("", { auth: token });
 
-  return client;
+  return octokit;
 };
 
-export const getClientLogin = async (client: Client): Promise<string> => {
+export const getOctokitLogin = async (
+  octokit: OctokitClient
+): Promise<string> => {
   let login: string;
 
   try {
-    const { data } = await client.users.getAuthenticated();
+    const { data } = await octokit.users.getAuthenticated();
     login = data.login;
   } catch (error) {
     throw new Error(
