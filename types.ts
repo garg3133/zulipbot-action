@@ -17,6 +17,8 @@ export type Client = InstanceType<typeof GitHub> & {
   templates?: Map<string, Template>;
 };
 
+export type Octokit = InstanceType<typeof GitHub>;
+
 export type CommandRunFunction = (
   client: Client,
   payload: IssueCommentCreatedEvent,
