@@ -2,10 +2,10 @@ import { getInput } from "@actions/core";
 import Template from "../structures/Template";
 import * as fs from "fs";
 
-import { Client } from "../types";
+import { OctokitClient } from "../types";
 
 export default async function getTemplates(
-  client: Client,
+  octokit: OctokitClient,
   owner: string,
   repo: string
 ): Promise<Map<string, Template>> {
@@ -14,19 +14,19 @@ export default async function getTemplates(
   const defaultTemplates: string[] = fs.readdirSync(
     `${__dirname}/../templates`
   );
-  const userTemplates: string[] = await getUserTemplates(client, owner, repo);
+  const userTemplates: string[] = await getUserTemplates(octokit, owner, repo);
 
   for (const file of defaultTemplates) {
     let content: string;
 
     if (userTemplates.includes(file)) {
-      content = await getUserTemplate(client, owner, repo, file);
+      content = await getUserTemplate(octokit, owner, repo, file);
     } else {
       content = fs.readFileSync(`${__dirname}/../templates/${file}`, "utf8");
     }
 
     const [name] = file.split(".md");
-    const template = new Template(client, name, content);
+    const template = new Template(octokit, name, content);
     templatesMap.set(name, template);
   }
 
@@ -34,7 +34,7 @@ export default async function getTemplates(
 }
 
 const getUserTemplates = async (
-  client: Client,
+  octokit: OctokitClient,
   owner: string,
   repo: string
 ): Promise<string[]> => {
@@ -44,7 +44,7 @@ const getUserTemplates = async (
   let userTemplatesNameArray: string[] | undefined;
 
   try {
-    const { data } = await client.repos.getContent({
+    const { data } = await octokit.repos.getContent({
       owner,
       repo,
       path: templatesDirPath,
@@ -80,7 +80,7 @@ const getUserTemplates = async (
 };
 
 const getUserTemplate = async (
-  client: Client,
+  octokit: OctokitClient,
   owner: string,
   repo: string,
   templateName: string
@@ -91,7 +91,7 @@ const getUserTemplate = async (
   let templateDataEncoded: string | undefined;
 
   try {
-    const { data } = await client.repos.getContent({
+    const { data } = await octokit.repos.getContent({
       owner,
       repo,
       path: templateFilePath,
