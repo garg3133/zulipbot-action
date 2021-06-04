@@ -1,4 +1,4 @@
-import { Client } from "./types";
+import { Octokit } from "./types";
 
 /**
  * Sorts and removes duplicate elements from a given array.
@@ -13,6 +13,7 @@ export const deduplicate = (array: string[]): string[] => {
 
 /**
  * Retrieves all pages of data from a node-github method.
+ * @param {Octokit} octokit Instance of Octokit client.
  * @param {String} api Rest API endpoint to use, ex. 'issues'.
  * @param {String} method API endpoint method to use, ex. 'listComments'.
  * @param {Object} parameters Parameters to pass to the method.
@@ -20,13 +21,13 @@ export const deduplicate = (array: string[]): string[] => {
  */
 
 export const getAllPages = async <P, R>(
-  client: Client,
+  octokit: Octokit,
   api: string,
   method: string,
   parameters: P
 ): Promise<R[]> => {
-  const options = client[api][method].endpoint.merge(parameters);
-  const responses: R[] = await client.paginate(options);
+  const options = octokit[api][method].endpoint.merge(parameters);
+  const responses: R[] = await octokit.paginate(options);
 
   return responses;
 };
