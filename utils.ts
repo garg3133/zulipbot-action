@@ -1,4 +1,4 @@
-import { Octokit } from "./types";
+import { OctokitClient } from "./types";
 
 /**
  * Sorts and removes duplicate elements from a given array.
@@ -21,7 +21,7 @@ export const deduplicate = (array: string[]): string[] => {
  */
 
 export const getAllPages = async <P, R>(
-  octokit: Octokit,
+  octokit: OctokitClient,
   api: string,
   method: string,
   parameters: P
