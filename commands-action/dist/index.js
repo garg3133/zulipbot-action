@@ -411,7 +411,7 @@ exports.getDefaultConfig = void 0;
 const fs = __importStar(__nccwpck_require__(5747));
 const js_yaml_1 = __nccwpck_require__(1917);
 function getDefaultConfig() {
-    const content = fs.readFileSync("./default-config.yml", "utf-8");
+    const content = fs.readFileSync(`${__dirname}/../config/default-config.yml`, "utf-8");
     const defaultConfig = js_yaml_1.load(content);
     return defaultConfig;
 }
