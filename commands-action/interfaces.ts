@@ -5,3 +5,9 @@ export interface CommandsActionUserConfigInterface {
       }
     | boolean;
 }
+
+export interface CommandsActionDefaultConfigInterface {
+  claim: {
+    max_assignees: number;
+  };
+}
