@@ -1,16 +1,16 @@
 import { setFailed } from "@actions/core";
 
-import { Client } from "../../../types";
+import { CommandsActionClient } from "../../types";
 
 export default async function addAssignee(
-  client: Client,
+  client: CommandsActionClient,
   commenter: string,
   number: number,
   owner: string,
   repo: string
 ): Promise<void> {
   try {
-    await client.issues.addAssignees({
+    await client.octokit.issues.addAssignees({
       owner,
       repo,
       issue_number: number,

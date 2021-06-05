@@ -1,36 +1,46 @@
 import { setFailed } from "@actions/core";
 import { context } from "@actions/github";
-import { getClient, getClientLogin } from "../client_config/client";
-import getUserConfig from "../client_config/getUserConfig";
+import { getOctokit, getOctokitLogin } from "../client/octokit";
+import getUserConfig from "../client/getUserConfig";
+import getTemplates from "../client/getTemplates";
 import getBotCommands from "./commands/getBotCommands";
-import getTemplates from "../client_config/getTemplates";
 import parseComment from "./parseComment";
+import Template from "../structures/Template";
 
-import { Client } from "../types";
 import { IssueCommentEvent } from "@octokit/webhooks-types";
+import { OctokitClient } from "../types";
+import { CommandsActionClient } from "./types";
+import { CommandsActionUserConfigInterface } from "./interfaces";
 
 const run = async (): Promise<void> => {
   try {
     // Works for both issue comment and PR comment.
     if (context.eventName !== "issue_comment") return;
 
-    const client: Client = getClient();
-
-    // Use promise.all() below??
-
-    // Get bot's username
-    client.username = await getClientLogin(client);
-
     const { owner, repo } = context.issue;
 
-    // Get user configuration
-    client.config = await getUserConfig(client, owner, repo);
+    // Create CommandsActionClient object
+    const octokit: OctokitClient = getOctokit();
 
-    // Get supported commands
-    client.commands = getBotCommands();
+    const [username, config, templates]: [
+      string,
+      CommandsActionUserConfigInterface,
+      Map<string, Template>
+    ] = await Promise.all([
+      getOctokitLogin(octokit),
+      getUserConfig(octokit, owner, repo),
+      getTemplates(octokit, owner, repo),
+    ]);
 
-    // Get templates
-    client.templates = await getTemplates(client, owner, repo);
+    const commands = getBotCommands();
+
+    const client: CommandsActionClient = {
+      octokit: octokit,
+      username: username,
+      config: config,
+      templates: templates,
+      commands: commands,
+    };
 
     const payload = context.payload as IssueCommentEvent;
 

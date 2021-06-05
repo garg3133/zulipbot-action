@@ -1,10 +1,10 @@
 import { setFailed } from "@actions/core";
 
-import { Client } from "../../../types";
 import { IssueCommentCreatedEvent } from "@octokit/webhooks-types";
+import { CommandsActionClient } from "../../types";
 
 export const run = async (
-  client: Client,
+  client: CommandsActionClient,
   payload: IssueCommentCreatedEvent,
   args: string,
   owner: string,
@@ -18,7 +18,7 @@ export const run = async (
     const error: string =
       "**ERROR:** You have not claimed this issue to work on yet.";
     try {
-      await client.issues.createComment({
+      await client.octokit.issues.createComment({
         owner,
         repo,
         issue_number: number,
@@ -28,7 +28,7 @@ export const run = async (
     return;
   }
   try {
-    await client.issues.removeAssignees({
+    await client.octokit.issues.removeAssignees({
       owner,
       repo,
       issue_number: number,

@@ -1,15 +1,11 @@
-import { Client } from "../types";
+import { CommandsActionClient } from "./types";
 import { IssueComment } from "@octokit/webhooks-types";
 
-interface CommandsToRunInterface {
-  [key: string]: string;
-}
-
 export default function parseComment(
-  client: Client,
+  client: CommandsActionClient,
   comment: IssueComment
-): CommandsToRunInterface {
-  const commands: CommandsToRunInterface = {};
+): { [key: string]: string } {
+  const commands = {};
   const commentBody = comment.body;
   const commenter = comment.user.login;
 
