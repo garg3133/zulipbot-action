@@ -56,11 +56,11 @@ export const run = async (
   const issueAreaLabels = labels.filter((label) => label in allowedAreaLabels);
 
   const teams = issueAreaLabels.map((label) => allowedAreaLabels[label]);
-  console.log(teams);
+  console.log("Teams:", teams);
 
   // Deduplicate and sort teams (multiple labels can point to same team)
   const uniqueTeams = deduplicate(teams);
-  console.log(uniqueTeams);
+  console.log("Unique Teams:", uniqueTeams);
 
   await updateTeams(client, number, uniqueTeams, owner, repo);
 };

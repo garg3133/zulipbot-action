@@ -47,10 +47,10 @@ const run = async (client, payload, owner, repo) => {
         return;
     const issueAreaLabels = labels.filter((label) => label in allowedAreaLabels);
     const teams = issueAreaLabels.map((label) => allowedAreaLabels[label]);
-    console.log(teams);
+    console.log("Teams:", teams);
     // Deduplicate and sort teams (multiple labels can point to same team)
     const uniqueTeams = utils_1.deduplicate(teams);
-    console.log(uniqueTeams);
+    console.log("Unique Teams:", uniqueTeams);
     await updateTeams_1.default(client, number, uniqueTeams, owner, repo);
 };
 exports.run = run;
@@ -85,14 +85,14 @@ async function updateTeams(client, number, teams, owner, repo) {
     const prefix = `CC by @${client.username}: `;
     const areaTeams = `@${owner}/${teams.join(`, @${owner}/`)}`;
     const newCC = `${prefix}${areaTeams}`;
-    console.log(newCC);
+    console.log("newCC:", newCC);
     const pattern = new RegExp(`^${prefix}.+$`, "m");
     const found = updatedIssueBody.match(pattern);
-    console.log(found);
+    console.log("Found:", found);
     if (found) {
         // CC already present.
         const oldCC = found[0];
-        console.log(oldCC);
+        console.log("oldCC:", oldCC);
         if (teams.length) {
             if (oldCC !== newCC) {
                 updatedIssueBody = updatedIssueBody.replace(pattern, newCC);
@@ -176,6 +176,7 @@ const run = async () => {
             github_1.context.eventName !== "pull_request_target")
             return;
         const payload = github_1.context.payload;
+        console.log(client.config);
         if (payload.action === "labeled" || payload.action === "unlabeled") {
             await areas.run(client, payload, owner, repo);
         }

@@ -30,16 +30,16 @@ export default async function updateTeams(
   const areaTeams = `@${owner}/${teams.join(`, @${owner}/`)}`;
 
   const newCC = `${prefix}${areaTeams}`;
-  console.log(newCC);
+  console.log("newCC:", newCC);
 
   const pattern = new RegExp(`^${prefix}.+$`, "m");
   const found = updatedIssueBody.match(pattern);
-  console.log(found);
+  console.log("Found:", found);
 
   if (found) {
     // CC already present.
     const oldCC = found[0];
-    console.log(oldCC);
+    console.log("oldCC:", oldCC);
     if (teams.length) {
       if (oldCC !== newCC) {
         updatedIssueBody = updatedIssueBody.replace(pattern, newCC);

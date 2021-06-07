@@ -33,6 +33,7 @@ const run = async (): Promise<void> => {
       return;
 
     const payload = context.payload as IssuesEvent | PullRequestEvent;
+    console.log(client.config);
     if (payload.action === "labeled" || payload.action === "unlabeled") {
       await areas.run(client, payload, owner, repo);
     }
