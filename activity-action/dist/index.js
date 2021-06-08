@@ -2,305 +2,37 @@ module.exports =
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 378:
-/***/ ((__unused_webpack_module, __webpack_exports__, __nccwpck_require__) => {
+/***/ 6524:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
-// ESM COMPAT FLAG
-__nccwpck_require__.r(__webpack_exports__);
 
-// EXTERNAL MODULE: ./node_modules/@actions/core/lib/core.js
-var core = __nccwpck_require__(186);
-// EXTERNAL MODULE: ./node_modules/@actions/github/lib/github.js
-var github = __nccwpck_require__(438);
-// CONCATENATED MODULE: ./lib/client_config/client.js
-
-
-const getClient = () => {
-    const token = core.getInput("token", { required: true });
-    const client = github.getOctokit("", { auth: token });
-    return client;
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-const getClientLogin = async (client) => {
-    let response;
-    try {
-        response = await client.users.getAuthenticated();
-    }
-    catch (error) {
-        throw new Error(`Received unexpected API status code ${error.status} while requesting for bot's username.`);
-    }
-    const login = response.data.login;
-    if (!login) {
-        throw new Error("Unable to get bot's username.");
-    }
-    return login;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.run = void 0;
+const utils_1 = __nccwpck_require__(918);
+const scrapePulls_1 = __importDefault(__nccwpck_require__(7181));
+const run = async (client, owner, repo) => {
+    // Bring in all open pull requests.
+    const pulls = await utils_1.getAllPages(client, "pulls.list", {
+        owner,
+        repo,
+    });
+    await scrapePulls_1.default(client, pulls, owner, repo);
 };
-
-// CONCATENATED MODULE: ./lib/activity-action/config/getActionConfig.js
-
-function getActionConfig() {
-    const config = new Object();
-    config.issue_assigned_label = (0,core.getInput)("issue_assigned_label");
-    config.skip_issue_with_label = (0,core.getInput)("skip_issue_with_label");
-    config.skip_issue_with_pull_label = (0,core.getInput)("skip_issue_with_pull_label");
-    config.clear_closed_issue = (0,core.getInput)("clear_closed_issue") === "true";
-    config.days_until_warning = parseInt((0,core.getInput)("days_until_warning", { required: true }));
-    config.days_until_unassign = parseInt((0,core.getInput)("days_until_unassign", { required: true }));
-    config.assign_pull_to_reviewer =
-        (0,core.getInput)("assign_pull_to_reviewer") === "true";
-    console.log("Config:", config);
-    return config;
-}
-
-// EXTERNAL MODULE: external "fs"
-var external_fs_ = __nccwpck_require__(747);
-// CONCATENATED MODULE: ./lib/utils.js
-/**
- * Sorts and removes duplicate elements from a given array.
- *
- * @param {Array} array Array to remove duplicates from.
- * @return {Array} Sorted array containing only unique entries.
- */
-const deduplicate = (array) => {
-    return Array.from(new Set(array)).sort();
-};
-/**
- * Retrieves all pages of data from a node-github method.
- * @param {String} path Path of the method in the format "api.method".
- * @param {Object} parameters Parameters to pass to the method.
- * @return {Array} Array of all data entries.
- */
-const getAllPages = async (client, path, parameters) => {
-    const [api, method] = path.split(".");
-    const options = client[api][method].endpoint.merge(parameters);
-    const responses = await client.paginate(options);
-    return responses;
-};
-
-// CONCATENATED MODULE: ./lib/structures/Template.js
-
-class Template {
-    constructor(client, name, content) {
-        /**
-         * The client that instantiated this template
-         * @type {Object}
-         */
-        this.client = client;
-        /**
-         * The name of this template
-         * @type {string}
-         */
-        this.name = name;
-        /**
-         * The content of this template
-         * @type {string}
-         */
-        this.content = content;
-    }
-    /**
-     * Finds comments generated from templates on a issue/pull request.
-     *
-     * @param {Object} repo Repository object of the PR/issue.
-     * @return {Array} Array of filtered template comments from the client user.
-     */
-    async getComments(parameters) {
-        const method = "issues.listComments";
-        const comments = await getAllPages(this.client, method, parameters);
-        const templateComments = comments.filter((comment) => {
-            // Use end of template comments to check if comment is from template
-            const matched = comment.body.endsWith(`<!-- ${this.name} -->`);
-            const fromClient = comment.user.login === this.client.username;
-            return matched && fromClient;
-        });
-        return templateComments;
-    }
-    /**
-     * Formats template content with values from a given context.
-     *
-     * @param {Object} context Context with names/values of variables to format
-     * @return {String} Formatted template content.
-     */
-    format(context) {
-        let content = this.content;
-        for (const variable of Object.entries(context)) {
-            const [expression, value] = variable;
-            content = content.replace(new RegExp(`{${expression}}`, "g"), value);
-        }
-        return content;
-    }
-}
-
-// CONCATENATED MODULE: ./lib/client_config/getTemplates.js
+exports.run = run;
 
 
+/***/ }),
 
-async function getTemplates(client, owner, repo) {
-    const templatesMap = new Map();
-    const defaultTemplates = external_fs_.readdirSync(`${__dirname}/../templates`);
-    const userTemplates = await getUserTemplates(client, owner, repo);
-    for (const file of defaultTemplates) {
-        let content;
-        if (userTemplates.includes(file)) {
-            content = await getUserTemplate(client, owner, repo, file);
-        }
-        else {
-            content = external_fs_.readFileSync(`${__dirname}/../templates/${file}`, "utf8");
-        }
-        const [name] = file.split(".md");
-        const template = new Template(client, name, content);
-        templatesMap.set(name, template);
-    }
-    return templatesMap;
-}
-const getUserTemplates = async (client, owner, repo) => {
-    const templatesDirPath = (0,core.getInput)("templates-dir-path");
-    if (!templatesDirPath)
-        return [];
-    let response;
-    try {
-        response = await client.repos.getContent({
-            owner,
-            repo,
-            path: templatesDirPath,
-        });
-    }
-    catch (error) {
-        if (error.status === 404) {
-            throw new Error("Templates directory not found. Please check the path in your workflow file.");
-        }
-        else {
-            throw new Error(`Received unexpected API status code while requesting templates dir: ${error.status}`);
-        }
-    }
-    const userTemplates = response.data;
-    if (!Array.isArray(userTemplates)) {
-        throw new Error("Please provide correct templates directory path in your workflow file.");
-    }
-    const userTemplatesNameArray = userTemplates
-        .filter((template) => template.type === "file")
-        .map((template) => template.name);
-    return userTemplatesNameArray;
-};
-const getUserTemplate = async (client, owner, repo, templateName) => {
-    const templatesDirPath = (0,core.getInput)("templates-dir-path");
-    const templateFilePath = templatesDirPath + "/" + templateName;
-    let response;
-    try {
-        response = await client.repos.getContent({
-            owner,
-            repo,
-            path: templateFilePath,
-        });
-    }
-    catch (error) {
-        if (error.status === 404) {
-            throw new Error(`Template file ${templateName} not found.`);
-        }
-        else {
-            throw new Error(`Received unexpected API status code while requesting ${templateName} template: ${error.status}`);
-        }
-    }
-    const templateDataEncoded = response.data.content;
-    if (!templateDataEncoded) {
-        throw new Error(`Unable to read the contents of the template ${templateName}.`);
-    }
-    const templateData = Buffer.from(templateDataEncoded, "base64").toString("utf-8");
-    return templateData;
-};
+/***/ 8277:
+/***/ ((__unused_webpack_module, exports) => {
 
-// CONCATENATED MODULE: ./lib/structures/ReferenceSearch.js
-/* eslint-disable array-element-newline */
-const keywords = [
-    "close", "closes", "closed",
-    "fix", "fixes", "fixed",
-    "resolve", "resolves", "resolved"
-];
-/* eslint-enable array-element-newline */
-class ReferenceSearch {
-    constructor(client, pull, owner, repo) {
-        /**
-         * The client that instantiated this template
-         * @type {Object}
-         */
-        this.client = client;
-        /**
-         * The number of the pull request this search applies to
-         * @type {Number}
-         */
-        this.number = pull.number;
-        /**
-         * The description of the pull request this search applies to
-         * @type {Number}
-         */
-        this.body = pull.body;
-        /**
-         * The name of the repository of the pull request this search applies to
-         * @type {Object}
-         */
-        this.repoName = repo;
-        /**
-         * The owner of the repository of the pull request this search applies to
-         * @type {Object}
-         */
-        this.repoOwner = owner;
-    }
-    /**
-     * Finds all open referenced issues from a given string
-     * by identifying keywords specified above.
-     *
-     * Keywords are sourced from
-     * https://help.github.com/articles/closing-issues-using-keywords/
-     *
-     * Referenced issues are only closed when pull requests are merged,
-     * not necessarily when commits are merged.
-     *
-     * @param {Array} strings Strings to find references in.
-     * @return {Array} Sorted array of all referenced issue numbers.
-     */
-    async find(strings) {
-        let matches = [];
-        strings.forEach(string => {
-            const wordMatches = keywords.map(tense => {
-                const regex = new RegExp(`${tense}:? +#([0-9]+)`, "i");
-                const match = string.match(regex);
-                return match ? match[1] : match;
-            });
-            matches = matches.concat(wordMatches);
-        });
-        // check matches for valid issue references
-        const statusCheck = matches.map(async (number) => {
-            if (!number)
-                return false;
-            const issue = await this.client.issues.get({
-                owner: this.repoOwner, repo: this.repoName, issue_number: number
-            });
-            // valid references are open issues
-            const valid = !issue.data.pull_request && issue.data.state === "open";
-            return valid ? number : false;
-        });
-        // statusCheck is an array of promises, so use Promise.all
-        const matchStatuses = await Promise.all(statusCheck);
-        // remove strings that didn't contain any references
-        const references = matchStatuses.filter(e => e);
-        console.log("Referenced issues: ", references);
-        return references;
-    }
-    async getBody() {
-        const bodyRefs = await this.find([this.body]);
-        return bodyRefs;
-    }
-    async getCommits() {
-        const commits = await this.client.pulls.listCommits({
-            owner: this.repoOwner, repo: this.repoName, pull_number: this.number
-        });
-        const msgs = commits.data.map(c => c.commit.message);
-        console.log("Commit messages:", msgs);
-        const commitRefs = await this.find(msgs);
-        return commitRefs;
-    }
-}
+"use strict";
 
-// CONCATENATED MODULE: ./lib/activity-action/activity/scrapeInactiveIssues.js
+Object.defineProperty(exports, "__esModule", ({ value: true }));
 async function scrapeInactiveIssues(client, references, issues, owner, repo) {
     const warn_ms = client.config.days_until_warning * 86400000;
     const abandon_ms = client.config.days_until_unassign * 86400000;
@@ -385,11 +117,42 @@ async function scrapeInactiveIssues(client, references, issues, owner, repo) {
         }
     }
 }
-
-// CONCATENATED MODULE: ./lib/activity-action/activity/scrapePulls.js
-
+exports.default = scrapeInactiveIssues;
 
 
+/***/ }),
+
+/***/ 7181:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const ReferenceSearch_1 = __importDefault(__nccwpck_require__(9664));
+const scrapeInactiveIssues_1 = __importDefault(__nccwpck_require__(8277));
+const utils = __importStar(__nccwpck_require__(918));
 async function scrapePulls(client, pulls, owner, repo) {
     // Check all open Pull Requests and their commits and add to
     // `referenceList` the issue linked with the PR/commit as key
@@ -412,13 +175,13 @@ async function scrapePulls(client, pulls, owner, repo) {
             console.log("Pull Label for skipping issue:", skip_linked_issue);
         }
         // Find all the linked issues to the PR and its commits.
-        const references = new ReferenceSearch(client, pull, owner, repo);
+        const references = new ReferenceSearch_1.default(client, pull, owner, repo);
         const bodyRefs = await references.getBody();
         const commitRefs = await references.getCommits();
         if (bodyRefs.length || commitRefs.length) {
             const references = commitRefs.concat(bodyRefs);
             // sort and remove duplicate references
-            const refs = deduplicate(references);
+            const refs = utils.deduplicate(references);
             refs.forEach((ref) => {
                 const issue_tag = `${repo}/${ref}`;
                 if (referenceList.has(issue_tag)) {
@@ -442,68 +205,464 @@ async function scrapePulls(client, pulls, owner, repo) {
         console.log(key, value);
     }
     // Bring in all open and assigned issues.
-    const issues = await getAllPages(client, "issues.listForRepo", {
+    const issues = await utils.getAllPages(client, "issues.listForRepo", {
         owner,
         repo,
         assignee: "*",
     });
-    await scrapeInactiveIssues(client, referenceList, issues, owner, repo);
+    await scrapeInactiveIssues_1.default(client, referenceList, issues, owner, repo);
 }
+exports.default = scrapePulls;
 
-// CONCATENATED MODULE: ./lib/activity-action/activity/activity.js
+
+/***/ }),
+
+/***/ 8884:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const core_1 = __nccwpck_require__(2186);
+function getActionConfig() {
+    const config = {
+        issue_assigned_label: core_1.getInput("issue_assigned_label"),
+        skip_issue_with_label: core_1.getInput("skip_issue_with_label"),
+        skip_issue_with_pull_label: core_1.getInput("skip_issue_with_pull_label"),
+        clear_closed_issue: core_1.getInput("clear_closed_issue") === "true",
+        days_until_warning: parseInt(core_1.getInput("days_until_warning")),
+        days_until_unassign: parseInt(core_1.getInput("days_until_unassign")),
+        assign_pull_to_reviewer: core_1.getInput("assign_pull_to_reviewer") === "true",
+    };
+    console.log("Config:", config);
+    return config;
+}
+exports.default = getActionConfig;
 
 
-const run = async (client, owner, repo) => {
-    // Bring in all open pull requests.
-    const pulls = await getAllPages(client, "pulls.list", {
-        owner,
-        repo,
-    });
-    await scrapePulls(client, pulls, owner, repo);
+/***/ }),
+
+/***/ 6213:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
 };
-
-// CONCATENATED MODULE: ./lib/activity-action/index.js
-
-
-
-
-
-
-const activity_action_run = async () => {
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const core_1 = __nccwpck_require__(2186);
+const github_1 = __nccwpck_require__(5438);
+const octokit_1 = __nccwpck_require__(2263);
+const getActionConfig_1 = __importDefault(__nccwpck_require__(8884));
+const getTemplates_1 = __importDefault(__nccwpck_require__(931));
+const activity = __importStar(__nccwpck_require__(6524));
+const run = async () => {
     try {
-        const client = getClient();
-        // Get bot's username
-        client.username = await getClientLogin(client);
-        // Get action's config
-        client.config = getActionConfig();
-        const { owner, repo } = github.context.issue;
-        // Get templates
-        client.templates = await getTemplates(client, owner, repo);
-        const payload = github.context.payload;
-        console.log("Payload:", payload);
-        if (github.context.eventName === "issues" && client.config.issue_assigned_label) {
-            if (payload.action === "assigned" || payload.action === "unassigned") {
-                // Do something
-            }
+        const { owner, repo } = github_1.context.issue;
+        const octokit = octokit_1.getOctokit();
+        const [username, templates] = await Promise.all([
+            octokit_1.getOctokitLogin(octokit),
+            getTemplates_1.default(octokit, owner, repo),
+        ]);
+        const config = getActionConfig_1.default();
+        const client = {
+            octokit,
+            username,
+            templates,
+            config,
+        };
+        if (github_1.context.eventName === "schedule") {
+            activity.run(client, owner, repo);
         }
-        else if (github.context.eventName === "schedule") {
-            run(client, owner, repo);
-        }
+        // if (context.eventName === "issues" && client.config.issue_assigned_label) {
+        //   if (payload.action === "assigned" || payload.action === "unassigned") {
+        //     // Do something
+        //   }
+        // } else if (context.eventName === "schedule") {
+        //   activity.run(client, owner, repo);
+        // }
         // if (payload.action === "labeled" || payload.action === "unlabeled") {
         //   areaLabel.run(client, payload);
         // }
     }
     catch (error) {
-        (0,core.setFailed)(error.message);
+        core_1.setFailed(error.message);
     }
 };
 // Run the script
-activity_action_run();
+run();
 
 
 /***/ }),
 
-/***/ 351:
+/***/ 931:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const core_1 = __nccwpck_require__(2186);
+const Template_1 = __importDefault(__nccwpck_require__(5275));
+const fs = __importStar(__nccwpck_require__(5747));
+async function getTemplates(octokit, owner, repo) {
+    const templatesMap = new Map();
+    const defaultTemplates = fs.readdirSync(`${__dirname}/../templates`);
+    const userTemplates = await getUserTemplates(octokit, owner, repo);
+    for (const file of defaultTemplates) {
+        let content;
+        if (userTemplates.includes(file)) {
+            content = await getUserTemplate(octokit, owner, repo, file);
+        }
+        else {
+            content = fs.readFileSync(`${__dirname}/../templates/${file}`, "utf8");
+        }
+        const [name] = file.split(".md");
+        const template = new Template_1.default(octokit, name, content);
+        templatesMap.set(name, template);
+    }
+    return templatesMap;
+}
+exports.default = getTemplates;
+const getUserTemplates = async (octokit, owner, repo) => {
+    const templatesDirPath = core_1.getInput("templates-dir-path");
+    if (!templatesDirPath)
+        return [];
+    let userTemplatesNameArray;
+    try {
+        const { data } = await octokit.repos.getContent({
+            owner,
+            repo,
+            path: templatesDirPath,
+        });
+        if (Array.isArray(data)) {
+            userTemplatesNameArray = data
+                .filter((template) => template.type === "file")
+                .map((template) => template.name);
+        }
+    }
+    catch (error) {
+        if (error.status === 404) {
+            throw new Error("Templates directory not found. Please check the path in your workflow file.");
+        }
+        else {
+            throw new Error(`Received unexpected API status code while requesting templates dir: ${error.status}`);
+        }
+    }
+    if (userTemplatesNameArray === undefined) {
+        // If templatesDirPath is not a path to a directory
+        // => `data` will be an object and not an array
+        // => userTemplatesNameArray will be undefined.
+        throw new Error("Please provide correct templates directory path in your workflow file.");
+    }
+    return userTemplatesNameArray;
+};
+const getUserTemplate = async (octokit, owner, repo, templateName) => {
+    const templatesDirPath = core_1.getInput("templates-dir-path");
+    const templateFilePath = templatesDirPath + "/" + templateName;
+    let templateDataEncoded;
+    try {
+        const { data } = await octokit.repos.getContent({
+            owner,
+            repo,
+            path: templateFilePath,
+        });
+        if ("content" in data) {
+            templateDataEncoded = data.content;
+        }
+    }
+    catch (error) {
+        if (error.status === 404) {
+            throw new Error(`Template file ${templateName} not found.`);
+        }
+        else {
+            throw new Error(`Received unexpected API status code while requesting ${templateName} template: ${error.status}`);
+        }
+    }
+    if (!templateDataEncoded) {
+        throw new Error(`Unable to read the contents of the template ${templateName}.`);
+    }
+    const templateData = Buffer.from(templateDataEncoded, "base64").toString("utf-8");
+    return templateData;
+};
+
+
+/***/ }),
+
+/***/ 2263:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getOctokitLogin = exports.getOctokit = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const github = __importStar(__nccwpck_require__(5438));
+const getOctokit = () => {
+    const token = core.getInput("token", { required: true });
+    const octokit = github.getOctokit("", { auth: token });
+    return octokit;
+};
+exports.getOctokit = getOctokit;
+const getOctokitLogin = async (octokit) => {
+    let login;
+    try {
+        const { data } = await octokit.users.getAuthenticated();
+        login = data.login;
+    }
+    catch (error) {
+        throw new Error(`Received unexpected API status code ${error.status} while requesting for bot's username.`);
+    }
+    return login;
+};
+exports.getOctokitLogin = getOctokitLogin;
+
+
+/***/ }),
+
+/***/ 9664:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+/* eslint-disable array-element-newline */
+const keywords = [
+    "close",
+    "closes",
+    "closed",
+    "fix",
+    "fixes",
+    "fixed",
+    "resolve",
+    "resolves",
+    "resolved",
+];
+/* eslint-enable array-element-newline */
+class ReferenceSearch {
+    constructor(octokit, pull, owner, repo) {
+        this.octokit = octokit;
+        this.number = pull.number;
+        this.body = pull.body;
+        this.repoName = repo;
+        this.repoOwner = owner;
+    }
+    /**
+     * Finds all open referenced issues from a given string
+     * by identifying keywords specified above.
+     *
+     * Keywords are sourced from
+     * https://help.github.com/articles/closing-issues-using-keywords/
+     *
+     * Issues referenced in PR description are closed when the pull request
+     * is merged, and issues referenced in commit message are closed when
+     * the commit is merged into the default branch, irrespective of whether
+     * the pull request containing the commit is merged or not.
+     *
+     * @param {Array} strings Strings to find issue references in.
+     * @return {Array} Sorted array of all referenced issue numbers.
+     */
+    async find(strings) {
+        let matches = [];
+        strings.forEach((string) => {
+            const wordMatches = keywords.map((tense) => {
+                const regex = new RegExp(`${tense}:? +#([0-9]+)`, "i");
+                const match = string.match(regex);
+                return match ? match[1] : match;
+            });
+            matches = matches.concat(wordMatches);
+        });
+        // Check matches for valid issue references
+        const statusCheck = matches.map(async (match) => {
+            if (!match)
+                return false;
+            const number = parseInt(match);
+            const issue = await this.octokit.issues.get({
+                owner: this.repoOwner,
+                repo: this.repoName,
+                issue_number: number,
+            });
+            // Valid references are open issues
+            const valid = !issue.data.pull_request && issue.data.state === "open";
+            return valid ? number : false;
+        });
+        // statusCheck is an array of promises, so use Promise.all
+        const matchStatuses = await Promise.all(statusCheck);
+        // Filter out to issue_numbers only
+        const references = matchStatuses.filter((x) => typeof x === "number");
+        console.log("Referenced issues: ", references);
+        return references;
+    }
+    async getBody() {
+        if (!this.body)
+            return [];
+        const bodyRefs = await this.find([this.body]);
+        return bodyRefs;
+    }
+    async getCommits() {
+        const commits = await this.octokit.pulls.listCommits({
+            owner: this.repoOwner,
+            repo: this.repoName,
+            pull_number: this.number,
+        });
+        const commitMsgs = commits.data.map((c) => c.commit.message);
+        console.log("Commit messages:", commitMsgs);
+        const commitRefs = await this.find(commitMsgs);
+        return commitRefs;
+    }
+}
+exports.default = ReferenceSearch;
+
+
+/***/ }),
+
+/***/ 5275:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const octokit_1 = __nccwpck_require__(2263);
+const utils_1 = __nccwpck_require__(918);
+class Template {
+    constructor(octokit, name, content) {
+        this.octokit = octokit;
+        this.name = name;
+        this.content = content;
+    }
+    /**
+     * Finds comments generated from templates on a issue/pull request.
+     *
+     * @param {Object} parameters Parameters to be passed to issues.listComments.
+     * @return {Array} Array of filtered template comments from the octokit user.
+     */
+    async getComments(parameters) {
+        const [api, method] = ["issues", "listComments"];
+        const clientUsername = await octokit_1.getOctokitLogin(this.octokit);
+        const comments = await utils_1.getAllPages(this.octokit, api, method, parameters);
+        const templateComments = comments.filter((comment) => {
+            // Use end of template comments to check if comment is from template
+            const matched = comment.body.endsWith(`<!-- ${this.name} -->`);
+            const fromClient = comment.user.login === clientUsername;
+            return matched && fromClient;
+        });
+        return templateComments;
+    }
+    /**
+     * Formats template content with values from a given context.
+     *
+     * @param {Object} context Context with names/values of variables to format
+     * @return {String} Formatted template content.
+     */
+    format(context) {
+        let content = this.content;
+        for (const [expression, value] of Object.entries(context)) {
+            content = content.replace(new RegExp(`{${expression}}`, "g"), value.toString());
+        }
+        return content;
+    }
+}
+exports.default = Template;
+
+
+/***/ }),
+
+/***/ 918:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getAllPages = exports.deduplicate = void 0;
+/**
+ * Sorts and removes duplicate elements from a given array.
+ *
+ * @param {Array} array Array to remove duplicates from.
+ * @return {Array} Sorted array containing only unique entries.
+ */
+const deduplicate = (array) => {
+    return Array.from(new Set(array)).sort();
+};
+exports.deduplicate = deduplicate;
+/**
+ * Retrieves all pages of data from a node-github method.
+ * @param {Octokit} octokit Instance of Octokit client.
+ * @param {String} api Rest API endpoint to use, ex. 'issues'.
+ * @param {String} method API endpoint method to use, ex. 'listComments'.
+ * @param {Object} parameters Parameters to pass to the method.
+ * @return {Array} Array of all data entries.
+ */
+const getAllPages = async (octokit, api, method, parameters) => {
+    const options = octokit[api][method].endpoint.merge(parameters);
+    const responses = await octokit.paginate(options);
+    return responses;
+};
+exports.getAllPages = getAllPages;
+
+
+/***/ }),
+
+/***/ 7351:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -516,8 +675,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const os = __importStar(__nccwpck_require__(87));
-const utils_1 = __nccwpck_require__(278);
+const os = __importStar(__nccwpck_require__(2087));
+const utils_1 = __nccwpck_require__(5278);
 /**
  * Commands
  *
@@ -589,7 +748,7 @@ function escapeProperty(s) {
 
 /***/ }),
 
-/***/ 186:
+/***/ 2186:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -611,11 +770,11 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const command_1 = __nccwpck_require__(351);
+const command_1 = __nccwpck_require__(7351);
 const file_command_1 = __nccwpck_require__(717);
-const utils_1 = __nccwpck_require__(278);
-const os = __importStar(__nccwpck_require__(87));
-const path = __importStar(__nccwpck_require__(622));
+const utils_1 = __nccwpck_require__(5278);
+const os = __importStar(__nccwpck_require__(2087));
+const path = __importStar(__nccwpck_require__(5622));
 /**
  * The code to exit an action
  */
@@ -850,9 +1009,9 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 // We use any as a valid input type
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const fs = __importStar(__nccwpck_require__(747));
-const os = __importStar(__nccwpck_require__(87));
-const utils_1 = __nccwpck_require__(278);
+const fs = __importStar(__nccwpck_require__(5747));
+const os = __importStar(__nccwpck_require__(2087));
+const utils_1 = __nccwpck_require__(5278);
 function issueCommand(command, message) {
     const filePath = process.env[`GITHUB_${command}`];
     if (!filePath) {
@@ -870,7 +1029,7 @@ exports.issueCommand = issueCommand;
 
 /***/ }),
 
-/***/ 278:
+/***/ 5278:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -896,15 +1055,15 @@ exports.toCommandValue = toCommandValue;
 
 /***/ }),
 
-/***/ 53:
+/***/ 4087:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Context = void 0;
-const fs_1 = __nccwpck_require__(747);
-const os_1 = __nccwpck_require__(87);
+const fs_1 = __nccwpck_require__(5747);
+const os_1 = __nccwpck_require__(2087);
 class Context {
     /**
      * Hydrate the context from the environment
@@ -953,7 +1112,7 @@ exports.Context = Context;
 
 /***/ }),
 
-/***/ 438:
+/***/ 5438:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -979,8 +1138,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getOctokit = exports.context = void 0;
-const Context = __importStar(__nccwpck_require__(53));
-const utils_1 = __nccwpck_require__(30);
+const Context = __importStar(__nccwpck_require__(4087));
+const utils_1 = __nccwpck_require__(3030);
 exports.context = new Context.Context();
 /**
  * Returns a hydrated octokit ready to use for GitHub Actions
@@ -996,7 +1155,7 @@ exports.getOctokit = getOctokit;
 
 /***/ }),
 
-/***/ 914:
+/***/ 7914:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -1022,7 +1181,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getApiBaseUrl = exports.getProxyAgent = exports.getAuthString = void 0;
-const httpClient = __importStar(__nccwpck_require__(925));
+const httpClient = __importStar(__nccwpck_require__(9925));
 function getAuthString(token, options) {
     if (!token && !options.auth) {
         throw new Error('Parameter token or opts.auth is required');
@@ -1046,7 +1205,7 @@ exports.getApiBaseUrl = getApiBaseUrl;
 
 /***/ }),
 
-/***/ 30:
+/***/ 3030:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -1072,12 +1231,12 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getOctokitOptions = exports.GitHub = exports.context = void 0;
-const Context = __importStar(__nccwpck_require__(53));
-const Utils = __importStar(__nccwpck_require__(914));
+const Context = __importStar(__nccwpck_require__(4087));
+const Utils = __importStar(__nccwpck_require__(7914));
 // octokit + plugins
-const core_1 = __nccwpck_require__(762);
-const plugin_rest_endpoint_methods_1 = __nccwpck_require__(44);
-const plugin_paginate_rest_1 = __nccwpck_require__(193);
+const core_1 = __nccwpck_require__(6762);
+const plugin_rest_endpoint_methods_1 = __nccwpck_require__(3044);
+const plugin_paginate_rest_1 = __nccwpck_require__(4193);
 exports.context = new Context.Context();
 const baseUrl = Utils.getApiBaseUrl();
 const defaults = {
@@ -1107,15 +1266,15 @@ exports.getOctokitOptions = getOctokitOptions;
 
 /***/ }),
 
-/***/ 925:
+/***/ 9925:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const http = __nccwpck_require__(605);
-const https = __nccwpck_require__(211);
-const pm = __nccwpck_require__(443);
+const http = __nccwpck_require__(8605);
+const https = __nccwpck_require__(7211);
+const pm = __nccwpck_require__(6443);
 let tunnel;
 var HttpCodes;
 (function (HttpCodes) {
@@ -1534,7 +1693,7 @@ class HttpClient {
         if (useProxy) {
             // If using proxy, need tunnel
             if (!tunnel) {
-                tunnel = __nccwpck_require__(294);
+                tunnel = __nccwpck_require__(4294);
             }
             const agentOptions = {
                 maxSockets: maxSockets,
@@ -1650,7 +1809,7 @@ exports.HttpClient = HttpClient;
 
 /***/ }),
 
-/***/ 443:
+/***/ 6443:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -1772,7 +1931,7 @@ exports.createTokenAuth = createTokenAuth;
 
 /***/ }),
 
-/***/ 762:
+/***/ 6762:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
@@ -1780,10 +1939,10 @@ exports.createTokenAuth = createTokenAuth;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 
-var universalUserAgent = __nccwpck_require__(429);
-var beforeAfterHook = __nccwpck_require__(682);
-var request = __nccwpck_require__(234);
-var graphql = __nccwpck_require__(668);
+var universalUserAgent = __nccwpck_require__(5030);
+var beforeAfterHook = __nccwpck_require__(3682);
+var request = __nccwpck_require__(6234);
+var graphql = __nccwpck_require__(8467);
 var authToken = __nccwpck_require__(334);
 
 function _objectWithoutPropertiesLoose(source, excluded) {
@@ -1954,7 +2113,7 @@ exports.Octokit = Octokit;
 
 /***/ }),
 
-/***/ 440:
+/***/ 9440:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
@@ -1962,8 +2121,8 @@ exports.Octokit = Octokit;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 
-var isPlainObject = __nccwpck_require__(287);
-var universalUserAgent = __nccwpck_require__(429);
+var isPlainObject = __nccwpck_require__(3287);
+var universalUserAgent = __nccwpck_require__(5030);
 
 function lowercaseKeys(object) {
   if (!object) {
@@ -2352,7 +2511,7 @@ exports.endpoint = endpoint;
 
 /***/ }),
 
-/***/ 668:
+/***/ 8467:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
@@ -2360,8 +2519,8 @@ exports.endpoint = endpoint;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 
-var request = __nccwpck_require__(234);
-var universalUserAgent = __nccwpck_require__(429);
+var request = __nccwpck_require__(6234);
+var universalUserAgent = __nccwpck_require__(5030);
 
 const VERSION = "4.6.0";
 
@@ -2468,7 +2627,7 @@ exports.withCustomRequest = withCustomRequest;
 
 /***/ }),
 
-/***/ 193:
+/***/ 4193:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -2608,7 +2767,7 @@ exports.paginateRest = paginateRest;
 
 /***/ }),
 
-/***/ 44:
+/***/ 3044:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -3772,8 +3931,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 
 function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
 
-var deprecation = __nccwpck_require__(932);
-var once = _interopDefault(__nccwpck_require__(223));
+var deprecation = __nccwpck_require__(8932);
+var once = _interopDefault(__nccwpck_require__(1223));
 
 const logOnce = once(deprecation => console.warn(deprecation));
 /**
@@ -3825,7 +3984,7 @@ exports.RequestError = RequestError;
 
 /***/ }),
 
-/***/ 234:
+/***/ 6234:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
@@ -3835,9 +3994,9 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 
 function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
 
-var endpoint = __nccwpck_require__(440);
-var universalUserAgent = __nccwpck_require__(429);
-var isPlainObject = __nccwpck_require__(287);
+var endpoint = __nccwpck_require__(9440);
+var universalUserAgent = __nccwpck_require__(5030);
+var isPlainObject = __nccwpck_require__(3287);
 var nodeFetch = _interopDefault(__nccwpck_require__(467));
 var requestError = __nccwpck_require__(537);
 
@@ -3981,12 +4140,12 @@ exports.request = request;
 
 /***/ }),
 
-/***/ 682:
+/***/ 3682:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-var register = __nccwpck_require__(670)
-var addHook = __nccwpck_require__(549)
-var removeHook = __nccwpck_require__(819)
+var register = __nccwpck_require__(4670)
+var addHook = __nccwpck_require__(5549)
+var removeHook = __nccwpck_require__(6819)
 
 // bind with array of arguments: https://stackoverflow.com/a/21792913
 var bind = Function.bind
@@ -4045,7 +4204,7 @@ module.exports.Collection = Hook.Collection
 
 /***/ }),
 
-/***/ 549:
+/***/ 5549:
 /***/ ((module) => {
 
 module.exports = addHook;
@@ -4098,7 +4257,7 @@ function addHook(state, kind, name, hook) {
 
 /***/ }),
 
-/***/ 670:
+/***/ 4670:
 /***/ ((module) => {
 
 module.exports = register;
@@ -4132,7 +4291,7 @@ function register(state, name, method, options) {
 
 /***/ }),
 
-/***/ 819:
+/***/ 6819:
 /***/ ((module) => {
 
 module.exports = removeHook;
@@ -4158,7 +4317,7 @@ function removeHook(state, name, method) {
 
 /***/ }),
 
-/***/ 932:
+/***/ 8932:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -4186,7 +4345,7 @@ exports.Deprecation = Deprecation;
 
 /***/ }),
 
-/***/ 287:
+/***/ 3287:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -4242,11 +4401,11 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 
 function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
 
-var Stream = _interopDefault(__nccwpck_require__(413));
-var http = _interopDefault(__nccwpck_require__(605));
-var Url = _interopDefault(__nccwpck_require__(835));
-var https = _interopDefault(__nccwpck_require__(211));
-var zlib = _interopDefault(__nccwpck_require__(761));
+var Stream = _interopDefault(__nccwpck_require__(2413));
+var http = _interopDefault(__nccwpck_require__(8605));
+var Url = _interopDefault(__nccwpck_require__(8835));
+var https = _interopDefault(__nccwpck_require__(7211));
+var zlib = _interopDefault(__nccwpck_require__(8761));
 
 // Based on https://github.com/tmpvar/jsdom/blob/aa85b2abf07766ff7bf5c1f6daafb3726f2f2db5/lib/jsdom/living/blob.js
 
@@ -4397,7 +4556,7 @@ FetchError.prototype.name = 'FetchError';
 
 let convert;
 try {
-	convert = __nccwpck_require__(877).convert;
+	convert = __nccwpck_require__(2877).convert;
 } catch (e) {}
 
 const INTERNALS = Symbol('Body internals');
@@ -5889,10 +6048,10 @@ exports.FetchError = FetchError;
 
 /***/ }),
 
-/***/ 223:
+/***/ 1223:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-var wrappy = __nccwpck_require__(940)
+var wrappy = __nccwpck_require__(2940)
 module.exports = wrappy(once)
 module.exports.strict = wrappy(onceStrict)
 
@@ -5938,27 +6097,27 @@ function onceStrict (fn) {
 
 /***/ }),
 
-/***/ 294:
+/***/ 4294:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-module.exports = __nccwpck_require__(219);
+module.exports = __nccwpck_require__(4219);
 
 
 /***/ }),
 
-/***/ 219:
+/***/ 4219:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-var net = __nccwpck_require__(631);
-var tls = __nccwpck_require__(16);
-var http = __nccwpck_require__(605);
-var https = __nccwpck_require__(211);
-var events = __nccwpck_require__(614);
-var assert = __nccwpck_require__(357);
-var util = __nccwpck_require__(669);
+var net = __nccwpck_require__(1631);
+var tls = __nccwpck_require__(4016);
+var http = __nccwpck_require__(8605);
+var https = __nccwpck_require__(7211);
+var events = __nccwpck_require__(8614);
+var assert = __nccwpck_require__(2357);
+var util = __nccwpck_require__(1669);
 
 
 exports.httpOverHttp = httpOverHttp;
@@ -6218,7 +6377,7 @@ exports.debug = debug; // for test
 
 /***/ }),
 
-/***/ 429:
+/***/ 5030:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -6244,7 +6403,7 @@ exports.getUserAgent = getUserAgent;
 
 /***/ }),
 
-/***/ 940:
+/***/ 2940:
 /***/ ((module) => {
 
 // Returns a wrapper function that returns a wrapped callback
@@ -6284,7 +6443,7 @@ function wrappy (fn, cb) {
 
 /***/ }),
 
-/***/ 877:
+/***/ 2877:
 /***/ ((module) => {
 
 module.exports = eval("require")("encoding");
@@ -6292,7 +6451,7 @@ module.exports = eval("require")("encoding");
 
 /***/ }),
 
-/***/ 357:
+/***/ 2357:
 /***/ ((module) => {
 
 "use strict";
@@ -6300,7 +6459,7 @@ module.exports = require("assert");;
 
 /***/ }),
 
-/***/ 614:
+/***/ 8614:
 /***/ ((module) => {
 
 "use strict";
@@ -6308,7 +6467,7 @@ module.exports = require("events");;
 
 /***/ }),
 
-/***/ 747:
+/***/ 5747:
 /***/ ((module) => {
 
 "use strict";
@@ -6316,7 +6475,7 @@ module.exports = require("fs");;
 
 /***/ }),
 
-/***/ 605:
+/***/ 8605:
 /***/ ((module) => {
 
 "use strict";
@@ -6324,7 +6483,7 @@ module.exports = require("http");;
 
 /***/ }),
 
-/***/ 211:
+/***/ 7211:
 /***/ ((module) => {
 
 "use strict";
@@ -6332,7 +6491,7 @@ module.exports = require("https");;
 
 /***/ }),
 
-/***/ 631:
+/***/ 1631:
 /***/ ((module) => {
 
 "use strict";
@@ -6340,7 +6499,7 @@ module.exports = require("net");;
 
 /***/ }),
 
-/***/ 87:
+/***/ 2087:
 /***/ ((module) => {
 
 "use strict";
@@ -6348,7 +6507,7 @@ module.exports = require("os");;
 
 /***/ }),
 
-/***/ 622:
+/***/ 5622:
 /***/ ((module) => {
 
 "use strict";
@@ -6356,7 +6515,7 @@ module.exports = require("path");;
 
 /***/ }),
 
-/***/ 413:
+/***/ 2413:
 /***/ ((module) => {
 
 "use strict";
@@ -6364,7 +6523,7 @@ module.exports = require("stream");;
 
 /***/ }),
 
-/***/ 16:
+/***/ 4016:
 /***/ ((module) => {
 
 "use strict";
@@ -6372,7 +6531,7 @@ module.exports = require("tls");;
 
 /***/ }),
 
-/***/ 835:
+/***/ 8835:
 /***/ ((module) => {
 
 "use strict";
@@ -6380,7 +6539,7 @@ module.exports = require("url");;
 
 /***/ }),
 
-/***/ 669:
+/***/ 1669:
 /***/ ((module) => {
 
 "use strict";
@@ -6388,7 +6547,7 @@ module.exports = require("util");;
 
 /***/ }),
 
-/***/ 761:
+/***/ 8761:
 /***/ ((module) => {
 
 "use strict";
@@ -6428,23 +6587,12 @@ module.exports = require("zlib");;
 /******/ 	}
 /******/ 	
 /************************************************************************/
-/******/ 	/* webpack/runtime/make namespace object */
-/******/ 	(() => {
-/******/ 		// define __esModule on exports
-/******/ 		__nccwpck_require__.r = (exports) => {
-/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-/******/ 			}
-/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
-/******/ 		};
-/******/ 	})();
-/******/ 	
 /******/ 	/* webpack/runtime/compat */
 /******/ 	
 /******/ 	__nccwpck_require__.ab = __dirname + "/";/************************************************************************/
 /******/ 	// module exports must be returned from runtime so entry inlining is disabled
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
-/******/ 	return __nccwpck_require__(378);
+/******/ 	return __nccwpck_require__(6213);
 /******/ })()
 ;
