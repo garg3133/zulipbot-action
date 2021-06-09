@@ -1,10 +1,13 @@
+import { Issue } from "@octokit/webhooks-types";
+import { ActivityActionClient } from "../types";
+
 export default async function scrapeInactiveIssues(
-  client,
-  references,
-  issues,
-  owner,
-  repo
-) {
+  client: ActivityActionClient,
+  references: Map<string, number>,
+  issues: Issue[],
+  owner: string,
+  repo: string
+): Promise<void> {
   const warn_ms = client.config.days_until_warning * 86400000;
   const abandon_ms = client.config.days_until_unassign * 86400000;
   console.log("Warn ms:", warn_ms);
@@ -14,17 +17,20 @@ export default async function scrapeInactiveIssues(
     const isPR = issue.pull_request;
     if (isPR) continue;
 
-    const skip_issue = issue.labels.find((label) => {
-      return label.name === client.config.skip_issue_with_label;
-    });
-    if (skip_issue) continue;
+    if (client.config.skip_issue_with_label) {
+      const skip_issue = issue.labels?.find((label) => {
+        return label.name === client.config.skip_issue_with_label;
+      });
+      if (skip_issue) continue;
+    }
 
     let time = Date.parse(issue.updated_at);
     const number = issue.number;
     const issueTag = `${repo}/${number}`;
 
     // Update `time` to the latest activity on issue or linked PRs.
-    if (time < references.get(issueTag)) time = references.get(issueTag);
+    const linkedPullTime = references.get(issueTag);
+    if (linkedPullTime && time < linkedPullTime) time = linkedPullTime;
 
     // Use `abandon_ms` as warning comment on the issue also
     // updates the issue.
@@ -33,6 +39,9 @@ export default async function scrapeInactiveIssues(
     // `abandon_ms` time has passed since the last update...
 
     const inactiveWarningTemplate = client.templates.get("inactiveWarning");
+    if (!inactiveWarningTemplate) {
+      throw new Error("Inactive warning template not found.");
+    }
 
     const commentsByTemplate = await inactiveWarningTemplate.getComments({
       owner,
@@ -60,27 +69,32 @@ export default async function scrapeInactiveIssues(
         Date.parse(relevantWarningComment.created_at)
       );
       // `abandon_ms` time has passed after the last update and
-      // the last update was the warning given by the action.
+      // the last update was the warning given by the action. So,
+      // unassign the assignees.
       const assignees = issue.assignees.map((assignee) => assignee.login);
 
-      client.issues.removeAssignees({
+      client.octokit.issues.removeAssignees({
         owner,
         repo,
         issue_number: number,
         assignees: assignees,
       });
 
-      const abandonWarning = client.templates.get("abandonWarning").format({
+      const abandonWarningTemplate = client.templates.get("abandonWarning");
+      if (!abandonWarningTemplate) {
+        throw new Error("Abandon warning template not found.");
+      }
+
+      const abandonWarning = abandonWarningTemplate.format({
         assignee: assignees.join(", @"),
         total: (abandon_ms + warn_ms) / 86400000,
         username: client.username,
       });
 
-      const id = relevantWarningComment.id;
-      client.issues.updateComment({
+      client.octokit.issues.updateComment({
         owner,
         repo,
-        comment_id: id,
+        comment_id: relevantWarningComment.id,
         body: abandonWarning,
       });
     } else if (time + warn_ms <= Date.now()) {
@@ -94,7 +108,7 @@ export default async function scrapeInactiveIssues(
         username: client.username,
       });
 
-      client.issues.createComment({
+      client.octokit.issues.createComment({
         owner,
         repo,
         issue_number: number,

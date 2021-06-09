@@ -16,10 +16,12 @@ const utils_1 = __nccwpck_require__(918);
 const scrapePulls_1 = __importDefault(__nccwpck_require__(7181));
 const run = async (client, owner, repo) => {
     // Bring in all open pull requests.
-    const pulls = await utils_1.getAllPages(client, "pulls.list", {
+    const [api, method] = ["pulls", "list"];
+    const parameters = {
         owner,
         repo,
-    });
+    };
+    const pulls = await utils_1.getAllPages(client.octokit, api, method, parameters);
     await scrapePulls_1.default(client, pulls, owner, repo);
 };
 exports.run = run;
@@ -34,6 +36,7 @@ exports.run = run;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 async function scrapeInactiveIssues(client, references, issues, owner, repo) {
+    var _a;
     const warn_ms = client.config.days_until_warning * 86400000;
     const abandon_ms = client.config.days_until_unassign * 86400000;
     console.log("Warn ms:", warn_ms);
@@ -42,23 +45,29 @@ async function scrapeInactiveIssues(client, references, issues, owner, repo) {
         const isPR = issue.pull_request;
         if (isPR)
             continue;
-        const skip_issue = issue.labels.find((label) => {
-            return label.name === client.config.skip_issue_with_label;
-        });
-        if (skip_issue)
-            continue;
+        if (client.config.skip_issue_with_label) {
+            const skip_issue = (_a = issue.labels) === null || _a === void 0 ? void 0 : _a.find((label) => {
+                return label.name === client.config.skip_issue_with_label;
+            });
+            if (skip_issue)
+                continue;
+        }
         let time = Date.parse(issue.updated_at);
         const number = issue.number;
         const issueTag = `${repo}/${number}`;
         // Update `time` to the latest activity on issue or linked PRs.
-        if (time < references.get(issueTag))
-            time = references.get(issueTag);
+        const linkedPullTime = references.get(issueTag);
+        if (linkedPullTime && time < linkedPullTime)
+            time = linkedPullTime;
         // Use `abandon_ms` as warning comment on the issue also
         // updates the issue.
         if (time + abandon_ms > Date.now())
             continue;
         // `abandon_ms` time has passed since the last update...
         const inactiveWarningTemplate = client.templates.get("inactiveWarning");
+        if (!inactiveWarningTemplate) {
+            throw new Error("Inactive warning template not found.");
+        }
         const commentsByTemplate = await inactiveWarningTemplate.getComments({
             owner,
             repo,
@@ -78,24 +87,28 @@ async function scrapeInactiveIssues(client, references, issues, owner, repo) {
         if (relevantWarningComment) {
             console.log("Warning time: ", Date.parse(relevantWarningComment.created_at));
             // `abandon_ms` time has passed after the last update and
-            // the last update was the warning given by the action.
+            // the last update was the warning given by the action. So,
+            // unassign the assignees.
             const assignees = issue.assignees.map((assignee) => assignee.login);
-            client.issues.removeAssignees({
+            client.octokit.issues.removeAssignees({
                 owner,
                 repo,
                 issue_number: number,
                 assignees: assignees,
             });
-            const abandonWarning = client.templates.get("abandonWarning").format({
+            const abandonWarningTemplate = client.templates.get("abandonWarning");
+            if (!abandonWarningTemplate) {
+                throw new Error("Abandon warning template not found.");
+            }
+            const abandonWarning = abandonWarningTemplate.format({
                 assignee: assignees.join(", @"),
                 total: (abandon_ms + warn_ms) / 86400000,
                 username: client.username,
             });
-            const id = relevantWarningComment.id;
-            client.issues.updateComment({
+            client.octokit.issues.updateComment({
                 owner,
                 repo,
-                comment_id: id,
+                comment_id: relevantWarningComment.id,
                 body: abandonWarning,
             });
         }
@@ -108,7 +121,7 @@ async function scrapeInactiveIssues(client, references, issues, owner, repo) {
                 abandon: client.config.days_until_unassign,
                 username: client.username,
             });
-            client.issues.createComment({
+            client.octokit.issues.createComment({
                 owner,
                 repo,
                 issue_number: number,
@@ -150,12 +163,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+const utils = __importStar(__nccwpck_require__(918));
 const ReferenceSearch_1 = __importDefault(__nccwpck_require__(9664));
 const scrapeInactiveIssues_1 = __importDefault(__nccwpck_require__(8277));
-const utils = __importStar(__nccwpck_require__(918));
 async function scrapePulls(client, pulls, owner, repo) {
-    // Check all open Pull Requests and their commits and add to
-    // `referenceList` the issue linked with the PR/commit as key
+    // Check all open Pull Requests and their commits and add the
+    // issues linked with PR/commits to `referenceList` as keys
     // and the time the PR was last updated as value.
     const referenceList = new Map();
     for (const pull of pulls) {
@@ -175,19 +188,19 @@ async function scrapePulls(client, pulls, owner, repo) {
             console.log("Pull Label for skipping issue:", skip_linked_issue);
         }
         // Find all the linked issues to the PR and its commits.
-        const references = new ReferenceSearch_1.default(client, pull, owner, repo);
-        const bodyRefs = await references.getBody();
-        const commitRefs = await references.getCommits();
+        const referenceSearch = new ReferenceSearch_1.default(client.octokit, pull, owner, repo);
+        const bodyRefs = await referenceSearch.getBody();
+        const commitRefs = await referenceSearch.getCommits();
         if (bodyRefs.length || commitRefs.length) {
-            const references = commitRefs.concat(bodyRefs);
+            const refs = commitRefs.concat(bodyRefs);
             // sort and remove duplicate references
-            const refs = utils.deduplicate(references);
-            refs.forEach((ref) => {
+            const references = utils.deduplicate(refs);
+            references.forEach((ref) => {
                 const issue_tag = `${repo}/${ref}`;
-                if (referenceList.has(issue_tag)) {
+                const alreadySetTime = referenceList.get(issue_tag);
+                if (alreadySetTime) {
                     // compare time and add the most latest time.
-                    const setTime = referenceList.get(issue_tag);
-                    if (time > setTime)
+                    if (time > alreadySetTime)
                         referenceList.set(issue_tag, time);
                 }
                 else {
@@ -205,11 +218,13 @@ async function scrapePulls(client, pulls, owner, repo) {
         console.log(key, value);
     }
     // Bring in all open and assigned issues.
-    const issues = await utils.getAllPages(client, "issues.listForRepo", {
+    const [api, method] = ["issues", "listForRepo"];
+    const parameters = {
         owner,
         repo,
         assignee: "*",
-    });
+    };
+    const issues = await utils.getAllPages(client.octokit, api, method, parameters);
     await scrapeInactiveIssues_1.default(client, referenceList, issues, owner, repo);
 }
 exports.default = scrapePulls;
