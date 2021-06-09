@@ -1,5 +1,8 @@
 # Example config for pulls action.
 
+# TODO: NO NEED FOR ANY DEFAULTS (true for any feature) here.
+# One TODO is below.
+
 # Mentioning the features you wish to use is mandatory.
 # Write `true` in front of the feature to use default config.
 # Not mentioning a feature or putting a `false` in front of
@@ -8,7 +11,6 @@
 # While modifying the config of each feature, only mention the
 # properties you wish to change, skip to use default.
 
-
 # Track and notify the contributor whenever a merge conflicts
 # arise.
 # @types:
@@ -16,13 +18,12 @@
 #   false: Don't use this feature;
 #   Provide config to use;
 merge_conflicts:
-
   # Label to put on PRs with merge conflicts.
   # @types:
   #   false or '': Don't add label;
   #   string: Name of label to add;
   # @default: false
-  label: 'has conflicts'
+  label: "has conflicts"
 
   # Whether to comment on the PR or not to notify the author
   # about the merge conflict.
@@ -32,7 +33,6 @@ merge_conflicts:
   # @default: true
   comment: true
 
-
 # Add a size label on a PR depending upon the number of lines
 # changed in that PR. Helps maintainers to get a hint of how
 # long reviewing the PR might take.
@@ -41,12 +41,12 @@ merge_conflicts:
 #   false: Don't use this feature;
 #   Provide config to use;
 size_labels:
-
   # List of labels and the minimum amount of (non-negative)
   # line changes required for that label to be added. Should be
   # listed in ascending order of the number of line changes
   # below.
-  # @default: []
+  # TODO: CHANGE THE LINE CHANGES TO MAXIMUM.
+  # @default: {}
   labels:
     "size: XS": 0
     "size: S": 5
@@ -62,7 +62,6 @@ size_labels:
   # @default: []
   exclude: ["frontend_tests/", "zerver/tests/"]
 
-
 # Import the labels from the issue whenever a PR is linked
 # to an issue, either by using keywords in issue description
 # or manually.
@@ -73,7 +72,6 @@ size_labels:
 #   false: Don't use this feature;
 #   Provide config to use;
 import_linked_issue_labels:
-
   # Labels to include/exclude from being added to linked PRs.
   # Either mention the `include` key or `exclude` key, don't
   # mention both.
@@ -83,7 +81,6 @@ import_linked_issue_labels:
     - "good first issue"
     - "good sprint project"
     - "help wanted"
-
 
 # Whether or not a contributor should mention the issue linked
 # to a PR in the commit message of the commit in that PR which
@@ -100,7 +97,6 @@ import_linked_issue_labels:
 #   false: Don't use this feature;
 #   Provide config to use;
 reference_required_in_commits:
-
   # Whether or not to skip the issue reference requirement in
   # commits for "work in progress" PRs.
   # @types:
@@ -108,7 +104,6 @@ reference_required_in_commits:
   #   false: Don't skip for WIP PRs;
   #   Provide title_beginning to use;
   skip_for_wip:
-
     # String with which the PR title should begin to mark a PR
     # as a "work in progress" PR.
     # @default: "[WIP]"
