@@ -18,7 +18,7 @@ export default async function scrapePulls(
   // Check all open Pull Requests and their commits and add the
   // issues linked with PR/commits to `referenceList` as keys
   // and the time the PR was last updated as value.
-  const referenceList: Map<string, number> = new Map();
+  const referenceList: Map<number, number> = new Map();
 
   for (const pull of pulls) {
     let time = Date.parse(pull.updated_at);
@@ -50,14 +50,13 @@ export default async function scrapePulls(
       // sort and remove duplicate references
       const references = utils.deduplicate<number>(refs);
 
-      references.forEach((ref) => {
-        const issue_tag = `${repo}/${ref}`;
-        const alreadySetTime = referenceList.get(issue_tag);
+      references.forEach((issue_number) => {
+        const alreadySetTime = referenceList.get(issue_number);
         if (alreadySetTime) {
           // compare time and add the most latest time.
-          if (time > alreadySetTime) referenceList.set(issue_tag, time);
+          if (time > alreadySetTime) referenceList.set(issue_number, time);
         } else {
-          referenceList.set(issue_tag, time);
+          referenceList.set(issue_number, time);
         }
       });
     }

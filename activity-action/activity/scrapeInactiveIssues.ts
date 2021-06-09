@@ -3,7 +3,7 @@ import { ActivityActionClient } from "../types";
 
 export default async function scrapeInactiveIssues(
   client: ActivityActionClient,
-  references: Map<string, number>,
+  references: Map<number, number>,
   issues: Issue[],
   owner: string,
   repo: string
@@ -26,10 +26,9 @@ export default async function scrapeInactiveIssues(
 
     let time = Date.parse(issue.updated_at);
     const number = issue.number;
-    const issueTag = `${repo}/${number}`;
 
     // Update `time` to the latest activity on issue or linked PRs.
-    const linkedPullTime = references.get(issueTag);
+    const linkedPullTime = references.get(number);
     if (linkedPullTime && time < linkedPullTime) time = linkedPullTime;
 
     // Use `abandon_ms` as warning comment on the issue also

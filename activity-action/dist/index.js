@@ -54,9 +54,8 @@ async function scrapeInactiveIssues(client, references, issues, owner, repo) {
         }
         let time = Date.parse(issue.updated_at);
         const number = issue.number;
-        const issueTag = `${repo}/${number}`;
         // Update `time` to the latest activity on issue or linked PRs.
-        const linkedPullTime = references.get(issueTag);
+        const linkedPullTime = references.get(number);
         if (linkedPullTime && time < linkedPullTime)
             time = linkedPullTime;
         // Use `abandon_ms` as warning comment on the issue also
@@ -195,16 +194,15 @@ async function scrapePulls(client, pulls, owner, repo) {
             const refs = commitRefs.concat(bodyRefs);
             // sort and remove duplicate references
             const references = utils.deduplicate(refs);
-            references.forEach((ref) => {
-                const issue_tag = `${repo}/${ref}`;
-                const alreadySetTime = referenceList.get(issue_tag);
+            references.forEach((issue_number) => {
+                const alreadySetTime = referenceList.get(issue_number);
                 if (alreadySetTime) {
                     // compare time and add the most latest time.
                     if (time > alreadySetTime)
-                        referenceList.set(issue_tag, time);
+                        referenceList.set(issue_number, time);
                 }
                 else {
-                    referenceList.set(issue_tag, time);
+                    referenceList.set(issue_number, time);
                 }
             });
         }
