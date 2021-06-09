@@ -59,7 +59,7 @@ export const run = async (
   console.log("Teams:", teams);
 
   // Deduplicate and sort teams (multiple labels can point to same team)
-  const uniqueTeams = deduplicate(teams);
+  const uniqueTeams = deduplicate<string>(teams);
   console.log("Unique Teams:", uniqueTeams);
 
   await updateTeams(client, number, uniqueTeams, owner, repo);

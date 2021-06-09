@@ -7,7 +7,7 @@ import { OctokitClient } from "./types";
  * @return {Array} Sorted array containing only unique entries.
  */
 
-export const deduplicate = (array: string[]): string[] => {
+export const deduplicate = <T>(array: T[]): T[] => {
   return Array.from(new Set(array)).sort();
 };
 
