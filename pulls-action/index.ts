@@ -11,25 +11,31 @@ import { PullRequestEvent, WorkflowRunEvent } from "@octokit/webhooks-types";
 
 export type PullsActionClient = {
   octokit: OctokitClient;
-  config?: PullsActionUserConfigInterface;
+  config: PullsActionUserConfigInterface;
 };
 
 const run = async (): Promise<void> => {
   try {
     const { owner, repo } = context.issue;
 
+    const octokit: OctokitClient = getOctokit();
+
+    const config = await getUserConfig(octokit, owner, repo);
+
     const client: PullsActionClient = {
-      octokit: getOctokit(),
+      octokit,
+      config,
     };
 
     if (context.eventName === "pull_request") {
-      // Get user configuration
-      client.config = await getUserConfig(client.octokit, owner, repo);
       const payload = context.payload as PullRequestEvent;
 
       pulls.run(client, payload, owner, repo);
     } else if (context.eventName === "workflow_run") {
       const payload = context.payload as WorkflowRunEvent;
+      if (payload.workflow_run.conclusion !== "success") {
+        throw new Error("Pulls action workflow run unsuccessful. Exiting.");
+      }
 
       workflow_run.run(client, payload, owner, repo);
     }

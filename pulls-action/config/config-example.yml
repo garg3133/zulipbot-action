@@ -1,6 +1,7 @@
 # Example config for pulls action.
 
 # TODO: NO NEED FOR ANY DEFAULTS (true for any feature) here.
+# No need for false as well (just don't mention it)
 # One TODO is below.
 
 # Mentioning the features you wish to use is mandatory.
@@ -45,7 +46,8 @@ size_labels:
   # line changes required for that label to be added. Should be
   # listed in ascending order of the number of line changes
   # below.
-  # TODO: CHANGE THE LINE CHANGES TO MAXIMUM.
+  # TODO: CHANGE THE LINE CHANGES TO MAXIMUM (but will require
+  # of Infinity, so minimum may be better).
   # @default: {}
   labels:
     "size: XS": 0
