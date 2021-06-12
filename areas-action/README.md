@@ -64,7 +64,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Update issue/PR description
-        uses: garg3133/zulipbot-action/areas-action@main
+        uses: garg3133/zulipbot-action/areas-action@v0.0.1
         with:
           token: ${{ secrets.BOT_ACCESS_TOKEN }}
           # Relative path to the areas-action config file
