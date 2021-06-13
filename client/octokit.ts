@@ -1,6 +1,8 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
-import { OctokitClient } from "../types";
+import { GitHub } from "@actions/github/lib/utils";
+
+export type OctokitClient = InstanceType<typeof GitHub>;
 
 export const getOctokit = (): OctokitClient => {
   const token: string = core.getInput("token", { required: true });

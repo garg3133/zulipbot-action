@@ -8,7 +8,7 @@ import parseComment from "./parseComment";
 import Template from "../structures/Template";
 
 import { IssueCommentEvent } from "@octokit/webhooks-types";
-import { OctokitClient } from "../types";
+import { OctokitClient } from "../client/octokit";
 import { CommandsActionClient } from "./types";
 import { CommandsActionUserConfigInterface } from "./interfaces";
 import { getDefaultConfig } from "./config/getDefaultConfig";

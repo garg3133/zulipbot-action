@@ -5,7 +5,7 @@ import getActionConfig from "./config/getActionConfig";
 import getTemplates from "../client/getTemplates";
 import * as activity from "./activity/activity";
 
-import { OctokitClient } from "../types";
+import { OctokitClient } from "../client/octokit";
 import { ActivityActionClient } from "./types";
 import { ActivityActionUserConfigInterface } from "./interfaces";
 import Template from "../structures/Template";

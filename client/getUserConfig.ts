@@ -1,7 +1,7 @@
 import { getInput } from "@actions/core";
 import { load as yaml_load } from "js-yaml";
 
-import { OctokitClient } from "../types";
+import { OctokitClient } from "../client/octokit";
 
 export default async function getUserConfig(
   octokit: OctokitClient,

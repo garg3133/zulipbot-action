@@ -1,5 +1,5 @@
 import Template from "../structures/Template";
-import { OctokitClient } from "../types";
+import { OctokitClient } from "../client/octokit";
 import { ActivityActionUserConfigInterface } from "./interfaces";
 
 export type ActivityActionClient = {

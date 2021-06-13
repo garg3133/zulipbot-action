@@ -5,7 +5,7 @@ import getUserConfig from "../client/getUserConfig";
 import * as pulls from "./pulls/pulls";
 import * as workflow_run from "./workflow_run/workflow_run";
 
-import { OctokitClient } from "../types";
+import { OctokitClient } from "../client/octokit";
 import { PullsActionUserConfigInterface } from "./interfaces";
 import { PullRequestEvent, WorkflowRunEvent } from "@octokit/webhooks-types";
 

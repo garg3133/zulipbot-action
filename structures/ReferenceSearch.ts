@@ -1,4 +1,4 @@
-import { OctokitClient } from "../types";
+import { OctokitClient } from "../client/octokit";
 import { PullRequest } from "@octokit/webhooks-types";
 
 /* eslint-disable array-element-newline */

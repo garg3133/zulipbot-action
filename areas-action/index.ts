@@ -3,7 +3,7 @@ import { context } from "@actions/github";
 import { getOctokit, getOctokitLogin } from "../client/octokit";
 import getUserConfig from "../client/getUserConfig";
 import * as areas from "./areas/areas";
-import { OctokitClient } from "../types";
+import { OctokitClient } from "../client/octokit";
 import { AreasActionUserConfigInterface } from "./interfaces";
 import { AreasActionClient } from "./types";
 import { IssuesEvent, PullRequestEvent } from "@octokit/webhooks-types";

@@ -1,5 +1,5 @@
 import { AreasActionUserConfigInterface } from "./interfaces";
-import { OctokitClient } from "../types";
+import { OctokitClient } from "../client/octokit";
 
 export type AreasActionClient = {
   octokit: OctokitClient;

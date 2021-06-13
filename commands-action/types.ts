@@ -1,5 +1,5 @@
 import { IssueCommentCreatedEvent } from "@octokit/webhooks-types";
-import { OctokitClient } from "../types";
+import { OctokitClient } from "../client/octokit";
 import Template from "../structures/Template";
 import {
   CommandsActionDefaultConfigInterface,

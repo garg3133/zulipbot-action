@@ -3,7 +3,7 @@ import { getAllPages } from "../utils";
 
 import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
 import { IssueComment } from "@octokit/webhooks-types";
-import { OctokitClient } from "../types";
+import { OctokitClient } from "../client/octokit";
 
 type ListCommentsParameters =
   RestEndpointMethodTypes["issues"]["listComments"]["parameters"];

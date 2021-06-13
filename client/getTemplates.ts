@@ -2,7 +2,7 @@ import { getInput } from "@actions/core";
 import Template from "../structures/Template";
 import * as fs from "fs";
 
-import { OctokitClient } from "../types";
+import { OctokitClient } from "../client/octokit";
 
 export default async function getTemplates(
   octokit: OctokitClient,

@@ -1,4 +1,4 @@
-import { OctokitClient } from "./types";
+import { OctokitClient } from "./client/octokit";
 
 /**
  * Sorts and removes duplicate elements from a given array.
