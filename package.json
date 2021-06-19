@@ -10,7 +10,7 @@
     "build-activity-action": "tsc && ncc build lib/activity-action -o activity-action/dist --license licenses.txt",
     "build-pulls-action": "tsc && ncc build lib/pulls-action -o pulls-action/dist --license licenses.txt",
     "format": "prettier --write **/*.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
   },
   "repository": {
     "type": "git",
@@ -35,7 +35,11 @@
     "@types/adm-zip": "^0.4.34",
     "@types/js-yaml": "^4.0.1",
     "@vercel/ncc": "^0.27.0",
+    "jest": "^27.0.4",
     "prettier": "^2.3.0",
     "typescript": "^4.3.2"
+  },
+  "jest": {
+    "testEnvironment": "node"
   }
 }
