@@ -33,13 +33,18 @@
     "@octokit/plugin-rest-endpoint-methods": "^4.10.1",
     "@octokit/webhooks-types": "^3.75.2",
     "@types/adm-zip": "^0.4.34",
+    "@types/jest": "^26.0.23",
     "@types/js-yaml": "^4.0.1",
     "@vercel/ncc": "^0.27.0",
     "jest": "^27.0.4",
     "prettier": "^2.3.0",
+    "ts-jest": "^27.0.3",
     "typescript": "^4.3.2"
   },
   "jest": {
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "transform": {
+      "^.+\\.ts$": "ts-jest"
+    }
   }
 }
