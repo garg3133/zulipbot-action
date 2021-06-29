@@ -371,13 +371,267 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const claim = __importStar(__nccwpck_require__(9304));
 const abandon = __importStar(__nccwpck_require__(3528));
+const add = __importStar(__nccwpck_require__(5415));
+const remove = __importStar(__nccwpck_require__(7517));
 function getBotCommands() {
     const commands = new Map();
+    // Put all the aliases here (map them to the same function)
     commands.set("claim", claim.run);
     commands.set("abandon", abandon.run);
+    commands.set("add", add.run);
+    commands.set("remove", remove.run);
     return commands;
 }
 exports.default = getBotCommands;
+
+
+/***/ }),
+
+/***/ 5415:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.run = void 0;
+const utils_1 = __nccwpck_require__(918);
+const isCommenterPermitted_1 = __importDefault(__nccwpck_require__(907));
+const rejectLabels_1 = __importDefault(__nccwpck_require__(2650));
+const core_1 = __nccwpck_require__(2186);
+const run = async (client, payload, args, owner, repo) => {
+    if (!client.config.labels)
+        return;
+    const labelsInArgs = args.match(/".*?"/);
+    if (!labelsInArgs) {
+        core_1.setFailed("No labels provided to be added.");
+        return;
+    }
+    const fullPermissions = client.config.labels.full_permissions;
+    const restrictedPermissions = client.config.labels.restricted_permissions;
+    const commenter = payload.issue.user.login;
+    const number = payload.issue.number;
+    const issueAuthor = payload.issue.user.login;
+    const issueLabels = payload.issue.labels.map((label) => label.name);
+    const repoLabelsArray = await utils_1.getAllPages(client.octokit, "issues", "listLabelsForRepo", { owner, repo });
+    const repoLabels = repoLabelsArray.map((label) => label.name);
+    const labels = labelsInArgs.map((string) => string.replace(/"/g, ""));
+    const isOrg = payload.repository.owner.type === "Organization";
+    const labelsToReject = labels.filter((label) => !repoLabels.includes(label));
+    let labelsToAdd = labels.filter((label) => repoLabels.includes(label) && !issueLabels.includes(label));
+    if (fullPermissions && fullPermissions.to) {
+        const permittedToLabel = fullPermissions.to;
+        const commenterPermitted = await isCommenterPermitted_1.default(client, permittedToLabel, commenter, issueAuthor, isOrg, owner);
+        if (commenterPermitted) {
+            rejectLabels_1.default(labelsToReject, client, payload.issue, owner, repo);
+            if (labelsToAdd.length) {
+                client.octokit.issues.addLabels({
+                    owner,
+                    repo,
+                    issue_number: number,
+                    labels: labelsToAdd,
+                });
+            }
+            return;
+        }
+    }
+    if (restrictedPermissions && restrictedPermissions.to) {
+        const allowedLabels = restrictedPermissions.allowed_labels;
+        const restrictedLabels = restrictedPermissions.restricted_labels;
+        if ((!allowedLabels && !restrictedLabels) ||
+            (allowedLabels && restrictedLabels)) {
+            throw new Error("Please mention exactly one of `allowed_labels` or `restricted_labels` in `restricted_permissions` config.");
+        }
+        if (allowedLabels) {
+            labelsToReject.concat(labelsToAdd.filter((label) => !allowedLabels.includes(label)));
+            labelsToAdd = labelsToAdd.filter((label) => allowedLabels.includes(label));
+        }
+        else if (restrictedLabels) {
+            labelsToReject.concat(labelsToAdd.filter((label) => restrictedLabels.includes(label)));
+            labelsToAdd = labelsToAdd.filter((label) => !restrictedLabels.includes(label));
+        }
+        const permittedToLabel = restrictedPermissions.to;
+        const commenterPermitted = await isCommenterPermitted_1.default(client, permittedToLabel, commenter, issueAuthor, isOrg, owner);
+        if (commenterPermitted) {
+            rejectLabels_1.default(labelsToReject, client, payload.issue, owner, repo);
+            if (labelsToAdd.length) {
+                client.octokit.issues.addLabels({
+                    owner,
+                    repo,
+                    issue_number: number,
+                    labels: labelsToAdd,
+                });
+            }
+            return;
+        }
+    }
+    const error = `**Error:** @${commenter} not permitted to add labels using this command.`;
+    client.octokit.issues.createComment({
+        owner,
+        repo,
+        issue_number: number,
+        body: error,
+    });
+};
+exports.run = run;
+
+
+/***/ }),
+
+/***/ 907:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const utils_1 = __nccwpck_require__(918);
+async function isCommenterPermitted(client, permittedToLabel, commenter, author, isOrg, owner) {
+    if (permittedToLabel.includes("all"))
+        return true;
+    else if (permittedToLabel.includes("author") && author === commenter)
+        return true;
+    else if (permittedToLabel.includes(`@${commenter}`))
+        return true;
+    else if (permittedToLabel.includes("member") && isOrg) {
+        const orgMembers = await utils_1.getAllPages(client.octokit, "orgs", "listMembers", {
+            org: owner,
+        });
+        const isMember = orgMembers
+            .map((member) => member.login)
+            .find((member) => member == commenter);
+        if (isMember)
+            return true;
+    }
+    return false;
+}
+exports.default = isCommenterPermitted;
+
+
+/***/ }),
+
+/***/ 2650:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+async function rejectLabels(labelsToReject, client, issue, owner, repo) {
+    if (!labelsToReject.length)
+        return;
+    const labelErrorTemplate = client.templates.get("labelError");
+    if (!labelErrorTemplate)
+        return;
+    const one = labelsToReject.length === 1;
+    const type = issue.pull_request ? "pull request" : "issue";
+    const labelError = labelErrorTemplate.format({
+        label: `Label${one ? "" : "s"}`,
+        labelList: `"${labelsToReject.join('", "')}"`,
+        does: `do${one ? "es" : ""}`,
+        this_label: `${one ? "this label" : "these labels"}`,
+        type: type,
+    });
+    client.octokit.issues.createComment({
+        owner,
+        repo,
+        issue_number: issue.number,
+        body: labelError,
+    });
+}
+exports.default = rejectLabels;
+
+
+/***/ }),
+
+/***/ 7517:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.run = void 0;
+const isCommenterPermitted_1 = __importDefault(__nccwpck_require__(907));
+const rejectLabels_1 = __importDefault(__nccwpck_require__(2650));
+const core_1 = __nccwpck_require__(2186);
+const run = async (client, payload, args, owner, repo) => {
+    if (!client.config.labels)
+        return;
+    const labelsInArgs = args.match(/".*?"/);
+    if (!labelsInArgs) {
+        core_1.setFailed("No labels provided to be removed.");
+        return;
+    }
+    const fullPermissions = client.config.labels.full_permissions;
+    const restrictedPermissions = client.config.labels.restricted_permissions;
+    const commenter = payload.issue.user.login;
+    const number = payload.issue.number;
+    const issueAuthor = payload.issue.user.login;
+    const issueLabels = payload.issue.labels.map((label) => label.name);
+    const isOrg = payload.repository.owner.type === "Organization";
+    const labels = labelsInArgs.map((string) => string.replace(/"/g, ""));
+    const labelsToReject = labels.filter((label) => !issueLabels.includes(label));
+    let labelsToRemove = labels.filter((label) => issueLabels.includes(label));
+    if (fullPermissions && fullPermissions.to) {
+        const permittedToLabel = fullPermissions.to;
+        const commenterPermitted = await isCommenterPermitted_1.default(client, permittedToLabel, commenter, issueAuthor, isOrg, owner);
+        if (commenterPermitted) {
+            rejectLabels_1.default(labelsToReject, client, payload.issue, owner, repo);
+            let newLabels = issueLabels.filter((label) => !labelsToRemove.includes(label));
+            if (labelsToRemove.length) {
+                client.octokit.issues.setLabels({
+                    owner,
+                    repo,
+                    issue_number: number,
+                    labels: newLabels,
+                });
+            }
+            return;
+        }
+    }
+    if (restrictedPermissions && restrictedPermissions.to) {
+        const allowedLabels = restrictedPermissions.allowed_labels;
+        const restrictedLabels = restrictedPermissions.restricted_labels;
+        if ((!allowedLabels && !restrictedLabels) ||
+            (allowedLabels && restrictedLabels)) {
+            throw new Error("Please mention exactly one of `allowed_labels` or `restricted_labels` in `restricted_permissions` config.");
+        }
+        if (allowedLabels) {
+            labelsToReject.concat(labelsToRemove.filter((label) => !allowedLabels.includes(label)));
+            labelsToRemove = labelsToRemove.filter((label) => allowedLabels.includes(label));
+        }
+        else if (restrictedLabels) {
+            labelsToReject.concat(labelsToRemove.filter((label) => restrictedLabels.includes(label)));
+            labelsToRemove = labelsToRemove.filter((label) => !restrictedLabels.includes(label));
+        }
+        const permittedToLabel = restrictedPermissions.to;
+        const commenterPermitted = await isCommenterPermitted_1.default(client, permittedToLabel, commenter, issueAuthor, isOrg, owner);
+        if (commenterPermitted) {
+            rejectLabels_1.default(labelsToReject, client, payload.issue, owner, repo);
+            const newLabels = issueLabels.filter((label) => !labelsToRemove.includes(label));
+            if (labelsToRemove.length) {
+                client.octokit.issues.setLabels({
+                    owner,
+                    repo,
+                    issue_number: number,
+                    labels: newLabels,
+                });
+            }
+            return;
+        }
+    }
+    const error = `**Error:** @${commenter} not permitted to remove labels using this command.`;
+    client.octokit.issues.createComment({
+        owner,
+        repo,
+        issue_number: number,
+        body: error,
+    });
+};
+exports.run = run;
 
 
 /***/ }),
