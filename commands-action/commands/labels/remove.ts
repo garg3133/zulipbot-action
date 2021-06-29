@@ -1,14 +1,9 @@
-import { getAllPages } from "../../../../utils";
-import isCommenterPermitted from "../isCommenterPermitted";
-import rejectLabels from "../rejectLabels";
+import isCommenterPermitted from "./isCommenterPermitted";
+import rejectLabels from "./rejectLabels";
 import { setFailed } from "@actions/core";
 
-import { IssueCommentCreatedEvent, Label } from "@octokit/webhooks-types";
-import { CommandsActionClient } from "../../../types";
-import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
-
-type ListLabelsForRepoParameters =
-  RestEndpointMethodTypes["issues"]["listLabelsForRepo"]["parameters"];
+import { IssueCommentCreatedEvent } from "@octokit/webhooks-types";
+import { CommandsActionClient } from "../../types";
 
 export const run = async (
   client: CommandsActionClient,
@@ -21,7 +16,7 @@ export const run = async (
 
   const labelsInArgs = args.match(/".*?"/g);
   if (!labelsInArgs) {
-    setFailed("No labels provided to be added.");
+    setFailed("No labels provided to be removed.");
     return;
   }
 
@@ -32,21 +27,12 @@ export const run = async (
   const number = payload.issue.number;
   const issueAuthor = payload.issue.user.login;
   const issueLabels = payload.issue.labels.map((label) => label.name);
-
-  const repoLabelsArray: Label[] = await getAllPages<
-    ListLabelsForRepoParameters,
-    Label
-  >(client.octokit, "issues", "listLabelsForRepo", { owner, repo });
-
-  const repoLabels = repoLabelsArray.map((label) => label.name);
-  const labels = labelsInArgs.map((string) => string.replace(/"/g, ""));
-
   const isOrg = payload.repository.owner.type === "Organization";
 
-  const labelsToReject = labels.filter((label) => !repoLabels.includes(label));
-  let labelsToAdd = labels.filter(
-    (label) => repoLabels.includes(label) && !issueLabels.includes(label)
-  );
+  const labels = labelsInArgs.map((string) => string.replace(/"/g, ""));
+
+  const labelsToReject = labels.filter((label) => !issueLabels.includes(label));
+  let labelsToRemove = labels.filter((label) => issueLabels.includes(label));
 
   if (fullPermission && fullPermission.to) {
     const permittedToLabel = fullPermission.to;
@@ -63,12 +49,15 @@ export const run = async (
     if (commenterPermitted) {
       rejectLabels(labelsToReject, client, payload.issue, owner, repo);
 
-      if (labelsToAdd.length) {
-        client.octokit.issues.addLabels({
+      let newLabels = issueLabels.filter(
+        (label) => !labelsToRemove.includes(label)
+      );
+      if (labelsToRemove.length) {
+        client.octokit.issues.setLabels({
           owner,
           repo,
           issue_number: number,
-          labels: labelsToAdd,
+          labels: newLabels,
         });
       }
       return;
@@ -90,16 +79,16 @@ export const run = async (
 
     if (allowedLabels) {
       labelsToReject.push(
-        ...labelsToAdd.filter((label) => !allowedLabels.includes(label))
+        ...labelsToRemove.filter((label) => !allowedLabels.includes(label))
       );
-      labelsToAdd = labelsToAdd.filter((label) =>
+      labelsToRemove = labelsToRemove.filter((label) =>
         allowedLabels.includes(label)
       );
     } else if (restrictedLabels) {
       labelsToReject.push(
-        ...labelsToAdd.filter((label) => restrictedLabels.includes(label))
+        ...labelsToRemove.filter((label) => restrictedLabels.includes(label))
       );
-      labelsToAdd = labelsToAdd.filter(
+      labelsToRemove = labelsToRemove.filter(
         (label) => !restrictedLabels.includes(label)
       );
     }
@@ -118,19 +107,22 @@ export const run = async (
     if (commenterPermitted) {
       rejectLabels(labelsToReject, client, payload.issue, owner, repo);
 
-      if (labelsToAdd.length) {
-        client.octokit.issues.addLabels({
+      const newLabels = issueLabels.filter(
+        (label) => !labelsToRemove.includes(label)
+      );
+      if (labelsToRemove.length) {
+        client.octokit.issues.setLabels({
           owner,
           repo,
           issue_number: number,
-          labels: labelsToAdd,
+          labels: newLabels,
         });
       }
       return;
     }
   }
 
-  const error = `**Error:** @${commenter} not permitted to add labels using this command.`;
+  const error = `**Error:** @${commenter} not permitted to remove labels using this command.`;
   client.octokit.issues.createComment({
     owner,
     repo,

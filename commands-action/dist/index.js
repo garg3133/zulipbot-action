@@ -371,8 +371,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const claim = __importStar(__nccwpck_require__(9304));
 const abandon = __importStar(__nccwpck_require__(3528));
-const add = __importStar(__nccwpck_require__(5415));
-const remove = __importStar(__nccwpck_require__(7517));
+const add = __importStar(__nccwpck_require__(6808));
+const remove = __importStar(__nccwpck_require__(359));
 function getBotCommands() {
     const commands = new Map();
     // Put all the aliases here (map them to the same function)
@@ -387,7 +387,7 @@ exports.default = getBotCommands;
 
 /***/ }),
 
-/***/ 5415:
+/***/ 6808:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -544,7 +544,7 @@ exports.default = rejectLabels;
 
 /***/ }),
 
-/***/ 7517:
+/***/ 359:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";

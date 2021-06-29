@@ -1,7 +1,7 @@
 import * as claim from "./claim/claim";
 import * as abandon from "./abandon/abandon";
-import * as add from "./labels/add/add";
-import * as remove from "./labels/remove/remove";
+import * as add from "./labels/add";
+import * as remove from "./labels/remove";
 
 import { CommandRunFunction } from "../types";
 
