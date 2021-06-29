@@ -445,11 +445,11 @@ const run = async (client, payload, args, owner, repo) => {
             throw new Error("Please mention exactly one of `allowed_labels` or `restricted_labels` in `restricted_permission` config.");
         }
         if (allowedLabels) {
-            labelsToReject.concat(labelsToAdd.filter((label) => !allowedLabels.includes(label)));
+            labelsToReject.push(...labelsToAdd.filter((label) => !allowedLabels.includes(label)));
             labelsToAdd = labelsToAdd.filter((label) => allowedLabels.includes(label));
         }
         else if (restrictedLabels) {
-            labelsToReject.concat(labelsToAdd.filter((label) => restrictedLabels.includes(label)));
+            labelsToReject.push(...labelsToAdd.filter((label) => restrictedLabels.includes(label)));
             labelsToAdd = labelsToAdd.filter((label) => !restrictedLabels.includes(label));
         }
         const permittedToLabel = restrictedPermission.to;
@@ -600,11 +600,11 @@ const run = async (client, payload, args, owner, repo) => {
             throw new Error("Please mention exactly one of `allowed_labels` or `restricted_labels` in `restricted_permission` config.");
         }
         if (allowedLabels) {
-            labelsToReject.concat(labelsToRemove.filter((label) => !allowedLabels.includes(label)));
+            labelsToReject.push(...labelsToRemove.filter((label) => !allowedLabels.includes(label)));
             labelsToRemove = labelsToRemove.filter((label) => allowedLabels.includes(label));
         }
         else if (restrictedLabels) {
-            labelsToReject.concat(labelsToRemove.filter((label) => restrictedLabels.includes(label)));
+            labelsToReject.push(...labelsToRemove.filter((label) => restrictedLabels.includes(label)));
             labelsToRemove = labelsToRemove.filter((label) => !restrictedLabels.includes(label));
         }
         const permittedToLabel = restrictedPermission.to;

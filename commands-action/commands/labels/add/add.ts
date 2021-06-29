@@ -89,15 +89,15 @@ export const run = async (
     }
 
     if (allowedLabels) {
-      labelsToReject.concat(
-        labelsToAdd.filter((label) => !allowedLabels.includes(label))
+      labelsToReject.push(
+        ...labelsToAdd.filter((label) => !allowedLabels.includes(label))
       );
       labelsToAdd = labelsToAdd.filter((label) =>
         allowedLabels.includes(label)
       );
     } else if (restrictedLabels) {
-      labelsToReject.concat(
-        labelsToAdd.filter((label) => restrictedLabels.includes(label))
+      labelsToReject.push(
+        ...labelsToAdd.filter((label) => restrictedLabels.includes(label))
       );
       labelsToAdd = labelsToAdd.filter(
         (label) => !restrictedLabels.includes(label)
