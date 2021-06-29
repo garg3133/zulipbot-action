@@ -14,7 +14,7 @@ export const run = async (
 ): Promise<void> => {
   if (!client.config.labels) return;
 
-  const labelsInArgs = args.match(/".*?"/);
+  const labelsInArgs = args.match(/".*?"/g);
   if (!labelsInArgs) {
     setFailed("No labels provided to be removed.");
     return;

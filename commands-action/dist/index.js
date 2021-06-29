@@ -404,7 +404,7 @@ const core_1 = __nccwpck_require__(2186);
 const run = async (client, payload, args, owner, repo) => {
     if (!client.config.labels)
         return;
-    const labelsInArgs = args.match(/".*?"/);
+    const labelsInArgs = args.match(/".*?"/g);
     if (!labelsInArgs) {
         core_1.setFailed("No labels provided to be added.");
         return;
@@ -560,7 +560,7 @@ const core_1 = __nccwpck_require__(2186);
 const run = async (client, payload, args, owner, repo) => {
     if (!client.config.labels)
         return;
-    const labelsInArgs = args.match(/".*?"/);
+    const labelsInArgs = args.match(/".*?"/g);
     if (!labelsInArgs) {
         core_1.setFailed("No labels provided to be removed.");
         return;
