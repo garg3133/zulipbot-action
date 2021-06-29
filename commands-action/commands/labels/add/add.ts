@@ -28,7 +28,7 @@ export const run = async (
   const fullPermission = client.config.labels.full_permission;
   const restrictedPermission = client.config.labels.restricted_permission;
 
-  const commenter = payload.issue.user.login;
+  const commenter = payload.comment.user.login;
   const number = payload.issue.number;
   const issueAuthor = payload.issue.user.login;
   const issueLabels = payload.issue.labels.map((label) => label.name);

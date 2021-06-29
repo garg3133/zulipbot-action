@@ -409,9 +409,9 @@ const run = async (client, payload, args, owner, repo) => {
         core_1.setFailed("No labels provided to be added.");
         return;
     }
-    const fullPermissions = client.config.labels.full_permissions;
-    const restrictedPermissions = client.config.labels.restricted_permissions;
-    const commenter = payload.issue.user.login;
+    const fullPermission = client.config.labels.full_permission;
+    const restrictedPermission = client.config.labels.restricted_permission;
+    const commenter = payload.comment.user.login;
     const number = payload.issue.number;
     const issueAuthor = payload.issue.user.login;
     const issueLabels = payload.issue.labels.map((label) => label.name);
@@ -421,8 +421,8 @@ const run = async (client, payload, args, owner, repo) => {
     const isOrg = payload.repository.owner.type === "Organization";
     const labelsToReject = labels.filter((label) => !repoLabels.includes(label));
     let labelsToAdd = labels.filter((label) => repoLabels.includes(label) && !issueLabels.includes(label));
-    if (fullPermissions && fullPermissions.to) {
-        const permittedToLabel = fullPermissions.to;
+    if (fullPermission && fullPermission.to) {
+        const permittedToLabel = fullPermission.to;
         const commenterPermitted = await isCommenterPermitted_1.default(client, permittedToLabel, commenter, issueAuthor, isOrg, owner);
         if (commenterPermitted) {
             rejectLabels_1.default(labelsToReject, client, payload.issue, owner, repo);
@@ -437,12 +437,12 @@ const run = async (client, payload, args, owner, repo) => {
             return;
         }
     }
-    if (restrictedPermissions && restrictedPermissions.to) {
-        const allowedLabels = restrictedPermissions.allowed_labels;
-        const restrictedLabels = restrictedPermissions.restricted_labels;
+    if (restrictedPermission && restrictedPermission.to) {
+        const allowedLabels = restrictedPermission.allowed_labels;
+        const restrictedLabels = restrictedPermission.restricted_labels;
         if ((!allowedLabels && !restrictedLabels) ||
             (allowedLabels && restrictedLabels)) {
-            throw new Error("Please mention exactly one of `allowed_labels` or `restricted_labels` in `restricted_permissions` config.");
+            throw new Error("Please mention exactly one of `allowed_labels` or `restricted_labels` in `restricted_permission` config.");
         }
         if (allowedLabels) {
             labelsToReject.concat(labelsToAdd.filter((label) => !allowedLabels.includes(label)));
@@ -452,7 +452,7 @@ const run = async (client, payload, args, owner, repo) => {
             labelsToReject.concat(labelsToAdd.filter((label) => restrictedLabels.includes(label)));
             labelsToAdd = labelsToAdd.filter((label) => !restrictedLabels.includes(label));
         }
-        const permittedToLabel = restrictedPermissions.to;
+        const permittedToLabel = restrictedPermission.to;
         const commenterPermitted = await isCommenterPermitted_1.default(client, permittedToLabel, commenter, issueAuthor, isOrg, owner);
         if (commenterPermitted) {
             rejectLabels_1.default(labelsToReject, client, payload.issue, owner, repo);
@@ -565,9 +565,9 @@ const run = async (client, payload, args, owner, repo) => {
         core_1.setFailed("No labels provided to be removed.");
         return;
     }
-    const fullPermissions = client.config.labels.full_permissions;
-    const restrictedPermissions = client.config.labels.restricted_permissions;
-    const commenter = payload.issue.user.login;
+    const fullPermission = client.config.labels.full_permission;
+    const restrictedPermission = client.config.labels.restricted_permission;
+    const commenter = payload.comment.user.login;
     const number = payload.issue.number;
     const issueAuthor = payload.issue.user.login;
     const issueLabels = payload.issue.labels.map((label) => label.name);
@@ -575,8 +575,8 @@ const run = async (client, payload, args, owner, repo) => {
     const labels = labelsInArgs.map((string) => string.replace(/"/g, ""));
     const labelsToReject = labels.filter((label) => !issueLabels.includes(label));
     let labelsToRemove = labels.filter((label) => issueLabels.includes(label));
-    if (fullPermissions && fullPermissions.to) {
-        const permittedToLabel = fullPermissions.to;
+    if (fullPermission && fullPermission.to) {
+        const permittedToLabel = fullPermission.to;
         const commenterPermitted = await isCommenterPermitted_1.default(client, permittedToLabel, commenter, issueAuthor, isOrg, owner);
         if (commenterPermitted) {
             rejectLabels_1.default(labelsToReject, client, payload.issue, owner, repo);
@@ -592,12 +592,12 @@ const run = async (client, payload, args, owner, repo) => {
             return;
         }
     }
-    if (restrictedPermissions && restrictedPermissions.to) {
-        const allowedLabels = restrictedPermissions.allowed_labels;
-        const restrictedLabels = restrictedPermissions.restricted_labels;
+    if (restrictedPermission && restrictedPermission.to) {
+        const allowedLabels = restrictedPermission.allowed_labels;
+        const restrictedLabels = restrictedPermission.restricted_labels;
         if ((!allowedLabels && !restrictedLabels) ||
             (allowedLabels && restrictedLabels)) {
-            throw new Error("Please mention exactly one of `allowed_labels` or `restricted_labels` in `restricted_permissions` config.");
+            throw new Error("Please mention exactly one of `allowed_labels` or `restricted_labels` in `restricted_permission` config.");
         }
         if (allowedLabels) {
             labelsToReject.concat(labelsToRemove.filter((label) => !allowedLabels.includes(label)));
@@ -607,7 +607,7 @@ const run = async (client, payload, args, owner, repo) => {
             labelsToReject.concat(labelsToRemove.filter((label) => restrictedLabels.includes(label)));
             labelsToRemove = labelsToRemove.filter((label) => !restrictedLabels.includes(label));
         }
-        const permittedToLabel = restrictedPermissions.to;
+        const permittedToLabel = restrictedPermission.to;
         const commenterPermitted = await isCommenterPermitted_1.default(client, permittedToLabel, commenter, issueAuthor, isOrg, owner);
         if (commenterPermitted) {
             rejectLabels_1.default(labelsToReject, client, payload.issue, owner, repo);
