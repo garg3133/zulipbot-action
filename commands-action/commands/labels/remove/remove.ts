@@ -20,8 +20,8 @@ export const run = async (
     return;
   }
 
-  const fullPermissions = client.config.labels.full_permissions;
-  const restrictedPermissions = client.config.labels.restricted_permissions;
+  const fullPermission = client.config.labels.full_permission;
+  const restrictedPermission = client.config.labels.restricted_permission;
 
   const commenter = payload.issue.user.login;
   const number = payload.issue.number;
@@ -34,8 +34,8 @@ export const run = async (
   const labelsToReject = labels.filter((label) => !issueLabels.includes(label));
   let labelsToRemove = labels.filter((label) => issueLabels.includes(label));
 
-  if (fullPermissions && fullPermissions.to) {
-    const permittedToLabel = fullPermissions.to;
+  if (fullPermission && fullPermission.to) {
+    const permittedToLabel = fullPermission.to;
 
     const commenterPermitted: boolean = await isCommenterPermitted(
       client,
@@ -64,16 +64,16 @@ export const run = async (
     }
   }
 
-  if (restrictedPermissions && restrictedPermissions.to) {
-    const allowedLabels = restrictedPermissions.allowed_labels;
-    const restrictedLabels = restrictedPermissions.restricted_labels;
+  if (restrictedPermission && restrictedPermission.to) {
+    const allowedLabels = restrictedPermission.allowed_labels;
+    const restrictedLabels = restrictedPermission.restricted_labels;
 
     if (
       (!allowedLabels && !restrictedLabels) ||
       (allowedLabels && restrictedLabels)
     ) {
       throw new Error(
-        "Please mention exactly one of `allowed_labels` or `restricted_labels` in `restricted_permissions` config."
+        "Please mention exactly one of `allowed_labels` or `restricted_labels` in `restricted_permission` config."
       );
     }
 
@@ -93,7 +93,7 @@ export const run = async (
       );
     }
 
-    const permittedToLabel = restrictedPermissions.to;
+    const permittedToLabel = restrictedPermission.to;
 
     const commenterPermitted = await isCommenterPermitted(
       client,

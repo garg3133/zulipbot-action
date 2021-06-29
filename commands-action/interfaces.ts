@@ -5,10 +5,10 @@ export interface CommandsActionUserConfigInterface {
       }
     | boolean;
   labels?: {
-    full_permissions?: {
+    full_permission?: {
       to?: string[];
     };
-    restricted_permissions?: {
+    restricted_permission?: {
       to?: string[];
       allowed_labels?: string[];
       restricted_labels?: string[];
