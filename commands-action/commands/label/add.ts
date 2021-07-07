@@ -28,6 +28,12 @@ export const run = async (
   const fullPermission = client.config.label.full_permission;
   const restrictedPermission = client.config.label.restricted_permission;
 
+  if (!fullPermission && !restrictedPermission) {
+    throw new Error(
+      "Please include atleast one of `full_permission` or `restricted_permission` config in your configuration file."
+    );
+  }
+
   const commenter = payload.comment.user.login;
   const number = payload.issue.number;
   const issueAuthor = payload.issue.user.login;
