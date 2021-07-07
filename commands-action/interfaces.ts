@@ -4,7 +4,7 @@ export interface CommandsActionUserConfigInterface {
         max_assignees?: number;
       }
     | boolean;
-  labels?: {
+  label?: {
     full_permission?: {
       to?: string[];
     };

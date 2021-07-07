@@ -12,7 +12,7 @@ export const run = async (
   owner: string,
   repo: string
 ): Promise<void> => {
-  if (!client.config.labels) return;
+  if (!client.config.label) return;
 
   const labelsInArgs = args.match(/".*?"/g);
   if (!labelsInArgs) {
@@ -20,8 +20,8 @@ export const run = async (
     return;
   }
 
-  const fullPermission = client.config.labels.full_permission;
-  const restrictedPermission = client.config.labels.restricted_permission;
+  const fullPermission = client.config.label.full_permission;
+  const restrictedPermission = client.config.label.restricted_permission;
 
   const commenter = payload.comment.user.login;
   const number = payload.issue.number;
