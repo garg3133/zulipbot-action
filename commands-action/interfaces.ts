@@ -1,5 +1,5 @@
 export interface CommandsActionUserConfigInterface {
-  claim?:
+  assign?:
     | {
         max_assignees?: number;
       }
@@ -17,7 +17,7 @@ export interface CommandsActionUserConfigInterface {
 }
 
 export interface CommandsActionDefaultConfigInterface {
-  claim: {
+  assign: {
     max_assignees: number;
   };
 }

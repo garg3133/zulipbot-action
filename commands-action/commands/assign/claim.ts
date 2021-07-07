@@ -11,17 +11,18 @@ export const run = async (
   repo: string
 ): Promise<void> => {
   // Return if comment is made on a Pull Request.
-  // Comment out the following line if you want to use claim on PRs too.
+  // Comment out the following line if you want to use the
+  // assign feature on PRs too.
   if (payload.issue.pull_request) return;
 
-  if (!("claim" in client.config) || !client.config.claim) return;
+  if (!("assign" in client.config) || !client.config.assign) return;
 
-  if (client.config.claim === true) {
-    // Use default config for claim
-    client.config.claim = client.defaultConfig.claim;
+  if (client.config.assign === true) {
+    // Use default config for assign
+    client.config.assign = client.defaultConfig.assign;
   }
 
-  console.log("Issue claim args:", args);
+  console.log("Issue assign args:", args);
 
   const number: number = payload.issue.number;
   const commenter: string = payload.comment.user.login;
@@ -29,8 +30,8 @@ export const run = async (
     (assignee) => assignee.login
   );
   const limit: number =
-    client.config.claim.max_assignees ||
-    client.defaultConfig.claim.max_assignees;
+    client.config.assign.max_assignees ||
+    client.defaultConfig.assign.max_assignees;
 
   // Check if the issue is already assigned to the commenter.
   if (assignees.includes(commenter)) {

@@ -1,5 +1,5 @@
-import * as claim from "./claim/claim";
-import * as abandon from "./abandon/abandon";
+import * as claim from "./assign/claim";
+import * as abandon from "./assign/abandon";
 import * as add from "./label/add";
 import * as remove from "./label/remove";
 
