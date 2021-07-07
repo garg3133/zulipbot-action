@@ -1,6 +1,6 @@
 import { setFailed } from "@actions/core";
 
-import { CommandsActionClient } from "../../types";
+import { CommandsActionClient } from "../../../types";
 
 export default async function addAssignee(
   client: CommandsActionClient,

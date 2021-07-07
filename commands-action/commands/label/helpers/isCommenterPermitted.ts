@@ -1,7 +1,7 @@
-import { getAllPages } from "../../../utils";
+import { getAllPages } from "../../../../utils";
 
 import { User } from "@octokit/webhooks-types";
-import { CommandsActionClient } from "../../types";
+import { CommandsActionClient } from "../../../types";
 import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
 
 type OrgListMembersParameters =

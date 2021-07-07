@@ -1,5 +1,5 @@
 import { Issue } from "@octokit/webhooks-types";
-import { CommandsActionClient } from "../../types";
+import { CommandsActionClient } from "../../../types";
 
 export default async function rejectLabels(
   labelsToReject: string[],

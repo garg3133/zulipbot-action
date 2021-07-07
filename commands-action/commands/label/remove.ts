@@ -1,5 +1,5 @@
-import isCommenterPermitted from "./isCommenterPermitted";
-import rejectLabels from "./rejectLabels";
+import isCommenterPermitted from "./helpers/isCommenterPermitted";
+import rejectLabels from "./helpers/rejectLabels";
 import { setFailed } from "@actions/core";
 
 import { IssueCommentCreatedEvent } from "@octokit/webhooks-types";

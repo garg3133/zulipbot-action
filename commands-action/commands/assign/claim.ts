@@ -1,4 +1,4 @@
-import addAssignee from "./addAssignee";
+import addAssignee from "./helpers/addAssignee";
 
 import { IssueCommentCreatedEvent } from "@octokit/webhooks-types";
 import { CommandsActionClient } from "../../types";
