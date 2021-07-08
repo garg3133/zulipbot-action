@@ -15,7 +15,7 @@ export default function parseComment(
 
   if (commenter === client.username || !commentBody) return commands;
 
-  const regex = RegExp(`@${client.username} +(\\w+)( +(--\\w+|"[^"]+"))*`, "g");
+  const regex = RegExp(`@${client.username} +(\\w+)( +("[^"]+"))*`, "g");
   const parsed = commentBody.match(regex);
   if (!parsed) return commands;
 
