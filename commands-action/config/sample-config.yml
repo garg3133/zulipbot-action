@@ -1,0 +1,86 @@
+# Sample config for `commands-action`.
+
+# All the features are disabled by default. So, you need to
+# mention all the features/configs you wish to use in your
+# configuration file and skip the features/config you do not
+# wish to use.
+
+# Enable @claim and @abandon issue commands.
+#
+# Skip this config if you don't wish to use this feature.
+assign:
+  # Maximum users who can claim a single issue.
+  #
+  # Skip this config to use the default value of 1.
+  max_assignees: 1
+
+  # Whether or not to invite the contributors claiming an issue
+  # for the first time on your repository, as a collaborator
+  # with the "pull" (read) permission on you repository, before
+  # assigning them the issue.
+  #
+  # NOTE: Only valid for organisation-based repositories and
+  # the bot should have admin access on your repository.
+  #
+  # Skip this config to use the default value of false (not
+  # invite the first-time contributors as a collaborator on
+  # your repository).
+  add_as_collaborator: false
+
+  # Restrictions on the new contributors of your repository
+  # while using this feature.
+  #
+  # New contributors are those who do not have any commit on
+  # your repository yet.
+  #
+  # Skip this config to have no restrictions on the new
+  # contributors.
+  new_contributors:
+    # Maximum issues a new contributor can claim at the same
+    # time.
+    #
+    # Skip this config to have no restriction on the number of
+    # issues new contributors can claim at the same time.
+    max_issue_claims: 2
+
+    # Allow the new contributors to claim an issue only if it
+    # contains/does no contain certain labels.
+    #
+    # Skip this config for no label-based restrictions on new
+    # contributors.
+    assign_only_if:
+      # You can mention any one or both of the below configs.
+      #
+      # If there's a conflict between the two configs below,
+      # ex., if an issue contains both `difficult` and
+      # `help wanted` labels for the below config,
+      # `all_labels_absent` will always take precedence over
+      # `any_label_present` and thus, the issue wont't be
+      # assigned to the contributor.
+      all_labels_absent: ["hard", "difficult"]
+      any_label_present: ["good first issue", "help wanted"]
+
+# Enable @add and @remove label commands.
+#
+# Skip this config if you don't wish to use this feature.
+label:
+  # @keywords used:
+  #   "all": All authenticated users on GitHub.
+  #   "author": Author of issue or pull request.
+  #   "member": Member of the organization containing the
+  #            repository.
+  #   "@username": Specific GitHub user.
+
+  # Users given full_permission can add or remove any labels on
+  # issues and pull requests.
+  full_permission:
+    to: ["author", "member", "@garg3133"]
+
+  # Users given restricted_permission can add or remove only
+  # a few labels according to the restrictions specified below.
+  restricted_permission:
+    to: ["all"]
+    # Mention either `allowed_labels` or `restricted_labels`,
+    # do not mention both at the same time.
+    allowed_labels: ["bug", "feature"]
+    # restricted_labels: ["good first issue"]
