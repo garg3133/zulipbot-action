@@ -2,6 +2,14 @@ export interface CommandsActionUserConfigInterface {
   assign?:
     | {
         max_assignees?: number;
+        add_as_collaborator?: boolean;
+        new_contributors?: {
+          max_issue_claims?: number;
+          assign_only_if?: {
+            all_labels_absent?: string[];
+            any_label_present?: string[];
+          };
+        };
       }
     | boolean;
   label?: {
