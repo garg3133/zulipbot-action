@@ -11,7 +11,6 @@ import { IssueCommentEvent } from "@octokit/webhooks-types";
 import { OctokitClient } from "../client/octokit";
 import { CommandsActionClient } from "./types";
 import { CommandsActionUserConfigInterface } from "./interfaces";
-import { getDefaultConfig } from "./config/getDefaultConfig";
 
 const run = async (): Promise<void> => {
   try {
@@ -34,7 +33,6 @@ const run = async (): Promise<void> => {
     ]);
 
     const commands = getBotCommands();
-    const defaultConfig = getDefaultConfig();
 
     const client: CommandsActionClient = {
       octokit: octokit,
@@ -42,7 +40,6 @@ const run = async (): Promise<void> => {
       config: config,
       templates: templates,
       commands: commands,
-      defaultConfig: defaultConfig,
     };
 
     const payload = context.payload as IssueCommentEvent;

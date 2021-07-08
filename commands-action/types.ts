@@ -1,10 +1,7 @@
 import { IssueCommentCreatedEvent } from "@octokit/webhooks-types";
 import { OctokitClient } from "../client/octokit";
 import Template from "../structures/Template";
-import {
-  CommandsActionDefaultConfigInterface,
-  CommandsActionUserConfigInterface,
-} from "./interfaces";
+import { CommandsActionUserConfigInterface } from "./interfaces";
 
 export type CommandsActionClient = {
   octokit: OctokitClient;
@@ -12,7 +9,6 @@ export type CommandsActionClient = {
   config: CommandsActionUserConfigInterface;
   commands: Map<string, CommandRunFunction>;
   templates: Map<string, Template>;
-  defaultConfig: CommandsActionDefaultConfigInterface;
 };
 
 export type CommandRunFunction = (
