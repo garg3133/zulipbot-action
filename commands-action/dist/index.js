@@ -217,7 +217,7 @@ exports.getOctokitLogin = getOctokitLogin;
 
 /***/ }),
 
-/***/ 3528:
+/***/ 7358:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
@@ -259,32 +259,7 @@ exports.run = run;
 
 /***/ }),
 
-/***/ 1225:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-const core_1 = __nccwpck_require__(2186);
-async function addAssignee(client, commenter, number, owner, repo) {
-    try {
-        await client.octokit.issues.addAssignees({
-            owner,
-            repo,
-            issue_number: number,
-            assignees: [commenter],
-        });
-    }
-    catch (error) {
-        core_1.setFailed(`Failed to assign #${number} to ${commenter}. Error: ${error.message}`);
-    }
-}
-exports.default = addAssignee;
-
-
-/***/ }),
-
-/***/ 9304:
+/***/ 7011:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -294,24 +269,25 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = void 0;
-const addAssignee_1 = __importDefault(__nccwpck_require__(1225));
+const core_1 = __nccwpck_require__(2186);
+const utils_1 = __nccwpck_require__(918);
+const addAssignee_1 = __importDefault(__nccwpck_require__(9143));
+const inviteAsCollaborator_1 = __importDefault(__nccwpck_require__(2596));
+const newContributorCanClaim_1 = __importDefault(__nccwpck_require__(4556));
 const run = async (client, payload, args, owner, repo) => {
+    var _a;
     // Return if comment is made on a Pull Request.
-    // Comment out the following line if you want to use claim on PRs too.
+    // Comment out the following line if you want to use the
+    // assign feature on PRs too.
     if (payload.issue.pull_request)
         return;
-    if (!("claim" in client.config) || !client.config.claim)
+    if (!client.config.assign)
         return;
-    if (client.config.claim === true) {
-        // Use default config for claim
-        client.config.claim = client.defaultConfig.claim;
-    }
-    console.log("Issue claim args:", args);
     const number = payload.issue.number;
     const commenter = payload.comment.user.login;
     const assignees = payload.issue.assignees.map((assignee) => assignee.login);
-    const limit = client.config.claim.max_assignees ||
-        client.defaultConfig.claim.max_assignees;
+    const issueLabels = payload.issue.labels.map((label) => label.name);
+    const limit = (_a = client.config.assign.max_assignees) !== null && _a !== void 0 ? _a : 1;
     // Check if the issue is already assigned to the commenter.
     if (assignees.includes(commenter)) {
         const error = "**ERROR:** You have already claimed this issue.";
@@ -337,9 +313,259 @@ const run = async (client, payload, args, owner, repo) => {
         }
         return;
     }
+    const isOrg = payload.repository.owner.type === "Organization";
+    console.log("isOrg:", isOrg);
+    if (isOrg && client.config.assign.add_as_collaborator) {
+        try {
+            await client.octokit.repos.checkCollaborator({
+                owner,
+                repo,
+                username: commenter,
+            });
+        }
+        catch (error) {
+            if (error.status !== 404) {
+                core_1.setFailed("Unexpected response from GitHub API while checking if the commenter is a collaborator on the repository.");
+            }
+            return inviteAsCollaborator_1.default(client, number, commenter, owner, repo);
+        }
+    }
+    if (client.config.assign.new_contributors) {
+        const contributors = await utils_1.getAllPages(client.octokit, "repos", "listContributors", {
+            owner,
+            repo,
+        });
+        if (!contributors.find((user) => user.login === commenter)) {
+            // Commenter is a new contributor
+            console.log("new contributor");
+            const canClaim = await newContributorCanClaim_1.default(client, number, commenter, issueLabels, owner, repo);
+            if (!canClaim)
+                return;
+        }
+    }
     await addAssignee_1.default(client, commenter, number, owner, repo);
 };
 exports.run = run;
+
+
+/***/ }),
+
+/***/ 9143:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const core_1 = __nccwpck_require__(2186);
+async function addAssignee(client, commenter, number, owner, repo) {
+    try {
+        await client.octokit.issues.addAssignees({
+            owner,
+            repo,
+            issue_number: number,
+            assignees: [commenter],
+        });
+    }
+    catch (error) {
+        core_1.setFailed(`Failed to assign #${number} to ${commenter}. Error: ${error.message}`);
+    }
+}
+exports.default = addAssignee;
+
+
+/***/ }),
+
+/***/ 2596:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const utils_1 = __nccwpck_require__(918);
+async function inviteAsCollaborator(client, number, commenter, owner, repo) {
+    const [api, method] = ["repos", "listInvitations"];
+    const parameters = {
+        owner,
+        repo,
+    };
+    const openInvitations = await utils_1.getAllPages(client.octokit, api, method, parameters);
+    const activeInviteToCommenter = openInvitations.find((invitation) => {
+        var _a;
+        return (((_a = invitation.invitee) === null || _a === void 0 ? void 0 : _a.login) === commenter && invitation.expired === false);
+    });
+    if (activeInviteToCommenter !== undefined) {
+        const inviteErrorTemplate = client.templates.get("inviteError");
+        if (!inviteErrorTemplate) {
+            throw new Error("Invite error template not found.");
+        }
+        const inviteError = inviteErrorTemplate.format({
+            commenter,
+            owner,
+            repo,
+        });
+        client.octokit.issues.createComment({
+            owner,
+            repo,
+            issue_number: number,
+            body: inviteError,
+        });
+        return;
+    }
+    const contributorAdditionTemplate = client.templates.get("contributorAddition");
+    if (!contributorAdditionTemplate) {
+        throw new Error("Contributor Addition template not found.");
+    }
+    const contributorAdditionMessage = contributorAdditionTemplate.format({
+        commenter,
+        owner,
+        repo,
+        bot_username: client.username,
+    });
+    client.octokit.repos.addCollaborator({
+        owner,
+        repo,
+        username: commenter,
+        permission: "pull",
+    });
+    client.octokit.issues.createComment({
+        owner,
+        repo,
+        issue_number: number,
+        body: contributorAdditionMessage,
+    });
+}
+exports.default = inviteAsCollaborator;
+
+
+/***/ }),
+
+/***/ 4556:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const utils_1 = __nccwpck_require__(918);
+async function newContributorCanClaim(client, number, commenter, issueLabels, owner, repo) {
+    var _a;
+    const newContributorConfig = (_a = client.config.assign) === null || _a === void 0 ? void 0 : _a.new_contributors;
+    if (!newContributorConfig) {
+        // If new_contributor config is not defined, commenter has no restriction
+        // based on being a new contributor and thus, can claim the issue.
+        return true;
+    }
+    if (newContributorConfig.assign_only_if) {
+        const all_labels_absent = newContributorConfig.assign_only_if.all_labels_absent;
+        const any_label_present = newContributorConfig.assign_only_if.any_label_present;
+        console.log(all_labels_absent, any_label_present);
+        if (!all_labels_absent && !any_label_present) {
+            throw new Error("Please mention atleast one of `all_labels_absent` and `any_label_absent` config.");
+        }
+        const issueLabelsRestriction1Template = client.templates.get("issueLabelsRestriction1");
+        if (!issueLabelsRestriction1Template) {
+            throw new Error("Issue labels restriction 1 template not found.");
+        }
+        const issueLabelsRestriction2Template = client.templates.get("issueLabelsRestriction2");
+        if (!issueLabelsRestriction2Template) {
+            throw new Error("Issue labels restriction 2 template not found.");
+        }
+        // `all_labels_absent` will have more precedence over `any_label_present`.
+        if (all_labels_absent) {
+            const labelTestPassed = all_labels_absent.every((label) => !issueLabels.includes(label));
+            if (!labelTestPassed) {
+                let restrictionMessage;
+                // If `any_label_present` is not present in the config, use 1st template,
+                // otherwise, use the 2nd template.
+                if (!any_label_present) {
+                    restrictionMessage = issueLabelsRestriction1Template.format({
+                        commenter,
+                        atleast_one: "atleast one",
+                        labelList: `"${all_labels_absent.join('", "')}"`,
+                        none: "none",
+                    });
+                }
+                else {
+                    restrictionMessage = issueLabelsRestriction2Template.format({
+                        commenter,
+                        atleast_one: "atleast one",
+                        labelList1: `"${all_labels_absent.join('", "')}"`,
+                        none: "none",
+                        labelList2: `"${any_label_present.join('", "')}"`,
+                        without: "without",
+                    });
+                }
+                client.octokit.issues.createComment({
+                    owner,
+                    repo,
+                    issue_number: number,
+                    body: restrictionMessage,
+                });
+                return false;
+            }
+        }
+        if (any_label_present) {
+            const labelTestPassed = any_label_present.some((label) => issueLabels.includes(label));
+            if (!labelTestPassed) {
+                let restrictionMessage;
+                // If `all_labels_absent` is not present in the config, use 1st template,
+                // otherwise, use the 2nd template.
+                if (!all_labels_absent) {
+                    restrictionMessage = issueLabelsRestriction1Template.format({
+                        commenter,
+                        atleast_one: "none",
+                        labelList: `"${any_label_present.join('", "')}"`,
+                        none: "alteast one",
+                    });
+                }
+                else {
+                    restrictionMessage = issueLabelsRestriction2Template.format({
+                        commenter,
+                        atleast_one: "none",
+                        labelList1: `"${any_label_present.join('", "')}"`,
+                        none: "atleast one",
+                        labelList2: `"${all_labels_absent.join('", "')}"`,
+                        without: "with",
+                    });
+                }
+                client.octokit.issues.createComment({
+                    owner,
+                    repo,
+                    issue_number: number,
+                    body: restrictionMessage,
+                });
+                return false;
+            }
+        }
+    }
+    if (newContributorConfig.max_issue_claims) {
+        const limit = newContributorConfig.max_issue_claims;
+        const assignedIssues = await utils_1.getAllPages(client.octokit, "issues", "listForRepo", {
+            owner,
+            repo,
+            assignee: commenter,
+        });
+        if (assignedIssues.length >= limit) {
+            const maxIssueClaimsRestrictionTemplate = client.templates.get("maxIssueClaimsRestriction");
+            if (!maxIssueClaimsRestrictionTemplate) {
+                throw new Error("Max issue claims restriction template not found.");
+            }
+            const restrictionMessage = maxIssueClaimsRestrictionTemplate.format({
+                commenter,
+                limit,
+                issue: `issue${limit === 1 ? "" : "s"}`,
+            });
+            client.octokit.issues.createComment({
+                owner,
+                repo,
+                issue_number: number,
+                body: restrictionMessage,
+            });
+            return false;
+        }
+    }
+    return true;
+}
+exports.default = newContributorCanClaim;
 
 
 /***/ }),
@@ -369,10 +595,10 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const claim = __importStar(__nccwpck_require__(9304));
-const abandon = __importStar(__nccwpck_require__(3528));
-const add = __importStar(__nccwpck_require__(6808));
-const remove = __importStar(__nccwpck_require__(359));
+const claim = __importStar(__nccwpck_require__(7011));
+const abandon = __importStar(__nccwpck_require__(7358));
+const add = __importStar(__nccwpck_require__(1829));
+const remove = __importStar(__nccwpck_require__(1327));
 function getBotCommands() {
     const commands = new Map();
     // Put all the aliases here (map them to the same function)
@@ -387,7 +613,7 @@ exports.default = getBotCommands;
 
 /***/ }),
 
-/***/ 6808:
+/***/ 1829:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -398,19 +624,22 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = void 0;
 const utils_1 = __nccwpck_require__(918);
-const isCommenterPermitted_1 = __importDefault(__nccwpck_require__(907));
-const rejectLabels_1 = __importDefault(__nccwpck_require__(2650));
+const isCommenterPermitted_1 = __importDefault(__nccwpck_require__(3387));
+const rejectLabels_1 = __importDefault(__nccwpck_require__(7785));
 const core_1 = __nccwpck_require__(2186);
 const run = async (client, payload, args, owner, repo) => {
-    if (!client.config.labels)
+    if (!client.config.label)
         return;
     const labelsInArgs = args.match(/".*?"/g);
     if (!labelsInArgs) {
         core_1.setFailed("No labels provided to be added.");
         return;
     }
-    const fullPermission = client.config.labels.full_permission;
-    const restrictedPermission = client.config.labels.restricted_permission;
+    const fullPermission = client.config.label.full_permission;
+    const restrictedPermission = client.config.label.restricted_permission;
+    if (!fullPermission && !restrictedPermission) {
+        throw new Error("Please include atleast one of `full_permission` or `restricted_permission` config in your configuration file.");
+    }
     const commenter = payload.comment.user.login;
     const number = payload.issue.number;
     const issueAuthor = payload.issue.user.login;
@@ -480,7 +709,7 @@ exports.run = run;
 
 /***/ }),
 
-/***/ 907:
+/***/ 3387:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
@@ -511,7 +740,7 @@ exports.default = isCommenterPermitted;
 
 /***/ }),
 
-/***/ 2650:
+/***/ 7785:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -544,7 +773,7 @@ exports.default = rejectLabels;
 
 /***/ }),
 
-/***/ 359:
+/***/ 1327:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -554,19 +783,22 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = void 0;
-const isCommenterPermitted_1 = __importDefault(__nccwpck_require__(907));
-const rejectLabels_1 = __importDefault(__nccwpck_require__(2650));
+const isCommenterPermitted_1 = __importDefault(__nccwpck_require__(3387));
+const rejectLabels_1 = __importDefault(__nccwpck_require__(7785));
 const core_1 = __nccwpck_require__(2186);
 const run = async (client, payload, args, owner, repo) => {
-    if (!client.config.labels)
+    if (!client.config.label)
         return;
     const labelsInArgs = args.match(/".*?"/g);
     if (!labelsInArgs) {
         core_1.setFailed("No labels provided to be removed.");
         return;
     }
-    const fullPermission = client.config.labels.full_permission;
-    const restrictedPermission = client.config.labels.restricted_permission;
+    const fullPermission = client.config.label.full_permission;
+    const restrictedPermission = client.config.label.restricted_permission;
+    if (!fullPermission && !restrictedPermission) {
+        throw new Error("Please include atleast one of `full_permission` or `restricted_permission` config in your configuration file.");
+    }
     const commenter = payload.comment.user.login;
     const number = payload.issue.number;
     const issueAuthor = payload.issue.user.login;
@@ -636,44 +868,6 @@ exports.run = run;
 
 /***/ }),
 
-/***/ 4743:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getDefaultConfig = void 0;
-const fs = __importStar(__nccwpck_require__(5747));
-const js_yaml_1 = __nccwpck_require__(1917);
-function getDefaultConfig() {
-    const content = fs.readFileSync(`${__dirname}/../config/default-config.yml`, "utf-8");
-    const defaultConfig = js_yaml_1.load(content);
-    return defaultConfig;
-}
-exports.getDefaultConfig = getDefaultConfig;
-
-
-/***/ }),
-
 /***/ 9097:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -690,7 +884,6 @@ const getUserConfig_1 = __importDefault(__nccwpck_require__(4012));
 const getTemplates_1 = __importDefault(__nccwpck_require__(931));
 const getBotCommands_1 = __importDefault(__nccwpck_require__(2279));
 const parseComment_1 = __importDefault(__nccwpck_require__(7412));
-const getDefaultConfig_1 = __nccwpck_require__(4743);
 const run = async () => {
     try {
         // Works for both issue comment and PR comment.
@@ -705,14 +898,12 @@ const run = async () => {
             getTemplates_1.default(octokit, owner, repo),
         ]);
         const commands = getBotCommands_1.default();
-        const defaultConfig = getDefaultConfig_1.getDefaultConfig();
         const client = {
             octokit: octokit,
             username: username,
             config: config,
             templates: templates,
             commands: commands,
-            defaultConfig: defaultConfig,
         };
         const payload = github_1.context.payload;
         if (payload.action === "created") {
@@ -747,7 +938,7 @@ function parseComment(client, comment) {
     const commenter = comment.user.login;
     if (commenter === client.username || !commentBody)
         return commands;
-    const regex = RegExp(`@${client.username} +(\\w+)( +(--\\w+|"[^"]+"))*`, "g");
+    const regex = RegExp(`@${client.username} +(\\w+)( +("[^"]+"))*`, "g");
     const parsed = commentBody.match(regex);
     if (!parsed)
         return commands;
