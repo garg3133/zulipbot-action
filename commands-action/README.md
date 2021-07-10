@@ -35,7 +35,7 @@ Personal access token allows the action to use your bot account for performing t
 
 Next, you need to set up a configration file for the action, where you'll specify the details like what features you'd like to use, out of all the features this action provides, and with what configurations.
 
-You can add this configuration file anywhere in your repository, but we'ed prefer you create this file at `.github/zulipbot-config/commands-action.yml`.
+You can add this configuration file anywhere in your repository, but we'd prefer you create this file at `.github/zulipbot-config/commands-action.yml`.
 
 See the sample configuration file [here](config/sample-config.yml) with all possible configurations.
 
@@ -44,7 +44,17 @@ See the sample configuration file [here](config/sample-config.yml) with all poss
 The next step is to give the bot account you created earlier write permissions on your repository, so that the bot can perform the required actions like triaging, commenting, etc. in your repository. Follow the below mentioned two steps:
 
 - Add the bot account as a collaborator in your repository (go to _Settings > Manage access > Invite teams or people_).
-- Save the Personal access token you created earlier as a secret in your repository, so that it can be safely passed on to the action through the workflow file you'll create next. To save the personal access as a secret in your repository, go to _Settings > Secrets > New repository secret_ and add a new secret with `BOT_ACCESS_TOKEN` as name of the secret and the personal access token as value.
+- Save the Personal access token you created earlier as a secret in your repository, so that it can be safely passed on to the action through the workflow file you'll create at the end. To save the personal access as a secret in your repository, go to _Settings > Secrets > New repository secret_ and add a new secret with `BOT_ACCESS_TOKEN` as name of the secret and the personal access token as value.
+
+### Setting up custom templates (optional)
+
+You can optionally also set up custom templates, according to your needs. Templates contains the messages which will be posted by the bot in the issues and PRs of your repository, as a response to the commands used there. These messages are generally posted if something goes wrong, like a contributor trying to claim an issue he/she is not allowed to claim, as a way to give feedback to the commenter.
+
+The default templates can be found [here](templates/).
+
+If you don't like the default templates or need some changes in them, you can create your own custom templates and put them in a separate directory in your repository (which we'd prefer you create at `.github/zulipbot-config/templates`). Make sure that the template files you are creating have the same name as the default templates, otherwise they won't be considered.
+
+One more thing to note is that the words surrounded by the curly braces in the default templates are actually context variables, whose values are provided by the backend during render. For example, after the templates are rendered, `{commenter}` in the templates gets replaced by the actual username of the commenter. So, you can use these context variables in your custom templates as well, as you find suitable.
 
 ### Add action's workflow file
 
@@ -67,10 +77,12 @@ jobs:
         uses: garg3133/zulipbot-action/commands-action@main
         with:
           token: ${{ secrets.BOT_ACCESS_TOKEN }}
-          # Relative path to the areas-action config file
-          config-file-path: .github/zulipbot-config/areas-action.yml
-          # Relative path to the directory containing custom templates
-          templates-dir-path: .github/config/templates
+          # Relative path to the commands-action config file.
+          config-file-path: .github/zulipbot-config/commands-action.yml
+          # (Optional) Relative path to the directory containing custom templates.
+          templates-dir-path: .github/zulipbot-config/templates
 ```
+
+---
 
 Congrats :tada: you're all set up now. Go ahead and execute a command by commenting on an issue or pull request.
