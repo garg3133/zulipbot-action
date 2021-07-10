@@ -335,6 +335,7 @@ const run = async (client, payload, args, owner, repo) => {
             owner,
             repo,
         });
+        console.log(contributors);
         if (!contributors.find((user) => user.login === commenter)) {
             // Commenter is a new contributor
             console.log("new contributor");
@@ -628,6 +629,7 @@ const isCommenterPermitted_1 = __importDefault(__nccwpck_require__(3387));
 const rejectLabels_1 = __importDefault(__nccwpck_require__(7785));
 const core_1 = __nccwpck_require__(2186);
 const run = async (client, payload, args, owner, repo) => {
+    console.log("hello");
     if (!client.config.label)
         return;
     const labelsInArgs = args.match(/".*?"/g);
@@ -635,6 +637,7 @@ const run = async (client, payload, args, owner, repo) => {
         core_1.setFailed("No labels provided to be added.");
         return;
     }
+    console.log(labelsInArgs);
     const fullPermission = client.config.label.full_permission;
     const restrictedPermission = client.config.label.restricted_permission;
     if (!fullPermission && !restrictedPermission) {
@@ -647,9 +650,11 @@ const run = async (client, payload, args, owner, repo) => {
     const repoLabelsArray = await utils_1.getAllPages(client.octokit, "issues", "listLabelsForRepo", { owner, repo });
     const repoLabels = repoLabelsArray.map((label) => label.name);
     const labels = labelsInArgs.map((string) => string.replace(/"/g, ""));
+    console.log(labels);
     const isOrg = payload.repository.owner.type === "Organization";
     const labelsToReject = labels.filter((label) => !repoLabels.includes(label));
     let labelsToAdd = labels.filter((label) => repoLabels.includes(label) && !issueLabels.includes(label));
+    console.log(labelsToReject, labelsToAdd);
     if (fullPermission && fullPermission.to) {
         const permittedToLabel = fullPermission.to;
         const commenterPermitted = await isCommenterPermitted_1.default(client, permittedToLabel, commenter, issueAuthor, isOrg, owner);
@@ -676,6 +681,7 @@ const run = async (client, payload, args, owner, repo) => {
         if (allowedLabels) {
             labelsToReject.push(...labelsToAdd.filter((label) => !allowedLabels.includes(label)));
             labelsToAdd = labelsToAdd.filter((label) => allowedLabels.includes(label));
+            console.log(labelsToReject, labelsToAdd);
         }
         else if (restrictedLabels) {
             labelsToReject.push(...labelsToAdd.filter((label) => restrictedLabels.includes(label)));
@@ -684,6 +690,7 @@ const run = async (client, payload, args, owner, repo) => {
         const permittedToLabel = restrictedPermission.to;
         const commenterPermitted = await isCommenterPermitted_1.default(client, permittedToLabel, commenter, issueAuthor, isOrg, owner);
         if (commenterPermitted) {
+            console.log("commenter permitted");
             rejectLabels_1.default(labelsToReject, client, payload.issue, owner, repo);
             if (labelsToAdd.length) {
                 client.octokit.issues.addLabels({
@@ -910,6 +917,7 @@ const run = async () => {
             const commandsToRun = parseComment_1.default(client, payload.comment);
             for (const [command, args] of Object.entries(commandsToRun)) {
                 const command_run = client.commands.get(command);
+                console.log(command_run);
                 if (command_run) {
                     command_run(client, payload, args, owner, repo);
                 }

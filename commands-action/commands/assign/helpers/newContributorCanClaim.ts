@@ -27,6 +27,8 @@ export default async function newContributorCanClaim(
     const any_label_present =
       newContributorConfig.assign_only_if.any_label_present;
 
+    console.log(all_labels_absent, any_label_present);
+
     if (!all_labels_absent && !any_label_present) {
       throw new Error(
         "Please mention atleast one of `all_labels_absent` and `any_label_absent` config."

@@ -50,6 +50,8 @@ const run = async (): Promise<void> => {
       for (const [command, args] of Object.entries(commandsToRun)) {
         const command_run = client.commands.get(command);
 
+        console.log(command_run);
+
         if (command_run) {
           command_run(client, payload, args, owner, repo);
         }

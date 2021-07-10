@@ -66,6 +66,7 @@ export const run = async (
   }
 
   const isOrg = payload.repository.owner.type === "Organization";
+  console.log("isOrg:", isOrg);
 
   if (isOrg && client.config.assign.add_as_collaborator) {
     try {
@@ -93,8 +94,11 @@ export const run = async (
       repo,
     });
 
+    console.log(contributors);
+
     if (!contributors.find((user) => user.login === commenter)) {
       // Commenter is a new contributor
+      console.log("new contributor");
       const canClaim = await newContributorCanClaim(
         client,
         number,

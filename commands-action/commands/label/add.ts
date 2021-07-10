@@ -17,6 +17,8 @@ export const run = async (
   owner: string,
   repo: string
 ): Promise<void> => {
+  console.log("hello");
+
   if (!client.config.label) return;
 
   const labelsInArgs = args.match(/".*?"/g);
@@ -24,6 +26,8 @@ export const run = async (
     setFailed("No labels provided to be added.");
     return;
   }
+
+  console.log(labelsInArgs);
 
   const fullPermission = client.config.label.full_permission;
   const restrictedPermission = client.config.label.restricted_permission;
@@ -47,12 +51,15 @@ export const run = async (
   const repoLabels = repoLabelsArray.map((label) => label.name);
   const labels = labelsInArgs.map((string) => string.replace(/"/g, ""));
 
+  console.log(labels);
+
   const isOrg = payload.repository.owner.type === "Organization";
 
   const labelsToReject = labels.filter((label) => !repoLabels.includes(label));
   let labelsToAdd = labels.filter(
     (label) => repoLabels.includes(label) && !issueLabels.includes(label)
   );
+  console.log(labelsToReject, labelsToAdd);
 
   if (fullPermission && fullPermission.to) {
     const permittedToLabel = fullPermission.to;
@@ -101,6 +108,7 @@ export const run = async (
       labelsToAdd = labelsToAdd.filter((label) =>
         allowedLabels.includes(label)
       );
+      console.log(labelsToReject, labelsToAdd);
     } else if (restrictedLabels) {
       labelsToReject.push(
         ...labelsToAdd.filter((label) => restrictedLabels.includes(label))
@@ -122,6 +130,7 @@ export const run = async (
     );
 
     if (commenterPermitted) {
+      console.log("commenter permitted");
       rejectLabels(labelsToReject, client, payload.issue, owner, repo);
 
       if (labelsToAdd.length) {
