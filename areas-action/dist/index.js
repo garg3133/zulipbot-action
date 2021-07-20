@@ -49,12 +49,15 @@ async function addLabelsToLinkedPulls(client, payload, owner, repo) {
         const refs = commitRefs.concat(bodyRefs);
         // sort and remove duplicate references
         const linkedIssues = utils.deduplicate(refs);
+        console.log(linkedIssues);
         const areaLabelsOnLinkedIssues = await findAreaLabelsOnIssues_1.default(client, allowedAreaLabels, linkedIssues, owner, repo);
+        console.log(areaLabelsOnLinkedIssues);
         const pullLabels = payload.pull_request.labels.map((label) => label.name);
         const pullLabelsSorted = utils.deduplicate(pullLabels);
         const pullNonAreaLabels = pullLabels.filter((label) => !allowedAreaLabels.includes(label));
         const newLabels = pullNonAreaLabels.concat(areaLabelsOnLinkedIssues);
         const newLabelsSorted = utils.deduplicate(newLabels);
+        console.log(pullLabelsSorted, newLabelsSorted);
         if (newLabelsSorted.toString() === pullLabelsSorted.toString())
             return;
         await client.octokit.issues.setLabels({

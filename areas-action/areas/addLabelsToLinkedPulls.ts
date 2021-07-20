@@ -42,6 +42,7 @@ export default async function addLabelsToLinkedPulls(
 
     // sort and remove duplicate references
     const linkedIssues = utils.deduplicate<number>(refs);
+    console.log(linkedIssues);
 
     const areaLabelsOnLinkedIssues = await findAreaLabelsOnIssues(
       client,
@@ -50,6 +51,8 @@ export default async function addLabelsToLinkedPulls(
       owner,
       repo
     );
+
+    console.log(areaLabelsOnLinkedIssues);
 
     const pullLabels = payload.pull_request.labels.map((label) => label.name);
     const pullLabelsSorted = utils.deduplicate<string>(pullLabels);
@@ -60,6 +63,8 @@ export default async function addLabelsToLinkedPulls(
 
     const newLabels = pullNonAreaLabels.concat(areaLabelsOnLinkedIssues);
     const newLabelsSorted = utils.deduplicate<string>(newLabels);
+
+    console.log(pullLabelsSorted, newLabelsSorted);
 
     if (newLabelsSorted.toString() === pullLabelsSorted.toString()) return;
 
