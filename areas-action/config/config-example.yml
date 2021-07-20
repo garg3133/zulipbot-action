@@ -10,4 +10,4 @@ area_labels:
 # Whether or not to notify the teams when a new pull
 # request is opened and linked to an area-labeled
 # issue.
-notify_about_linked_pull_request: true
+add_labels_to_linked_pulls: true

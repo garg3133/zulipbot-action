@@ -47,7 +47,6 @@ export const run = async (
   const allowedAreaLabels = client.config.area_labels;
   if (!allowedAreaLabels || typeof allowedAreaLabels !== "object") {
     setFailed("Unable to read 'area_labels' config as an object.");
-    console.log("hello");
     return;
   }
 
