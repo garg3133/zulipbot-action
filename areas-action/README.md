@@ -27,12 +27,24 @@ You can create this configuration file anywhere in your repository, but we'ed pr
 **Sample Config File**
 
 ```yml
-# A dictionary matching labels (specified as keys) to
+# A dictionary matching area labels (specified as keys) to
 # team slugs (specified as values).
 area_labels:
   "area: api": "server-api"
   "area: authentication": "server-authentication"
   "area: bots": "server-bots"
+
+# Whether or not to automatically copy the area labels
+# from an issue to the PRs linked to that issue (and thus,
+# notify the respective area teams of that PR).
+#
+# Note: This only works if the PR is linked to an issue
+# using the keywords (linked below) in the PR description
+# or commit messages. It currently does not consider the
+# issues linked manually due to the limitations of GitHub
+# API.
+# Keywords: https://help.github.com/articles/closing-issues-using-keywords/
+copy_area_labels_to_pulls: true
 ```
 
 Note: Multiple area-labels can map to the same team, but one area-label cannot map to multiple teams (area-labels must be unique in the configuration file).
@@ -52,19 +64,26 @@ The final step in setting up the _areas-action_ is to add a workflow file (in `y
 name: Areas Action
 
 on:
-  # Run the action whenever a label is added
-  # or removed from an issue or a pull request.
+  # Run the action (to notify the teams) whenever a label is
+  # added or removed from an issue.
   issues:
     types: [labeled, unlabeled]
+  # Run the action (to notify the teams) whenever a label is
+  # added or removed from a pull request.
+  #
+  # Run the action (to copy the labels from linked issues)
+  # whenever a pull request is opened, edited (PR description)
+  # or synchronized (commits are modified).
+  # Using "edited" and "synchronize" is optional.
   pull_request_target:
-    types: [labeled, unlabeled]
+    types: [labeled, unlabeled, opened, edited, synchronize]
 
 jobs:
   notify-teams:
     runs-on: ubuntu-latest
     steps:
       - name: Update issue/PR description
-        uses: garg3133/zulipbot-action/areas-action@v0.0.1
+        uses: garg3133/zulipbot-action/areas-action@main
         with:
           token: ${{ secrets.BOT_ACCESS_TOKEN }}
           # Relative path to the areas-action config file
