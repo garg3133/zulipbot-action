@@ -2,6 +2,74 @@ module.exports =
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 6886:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const utils = __importStar(__nccwpck_require__(918));
+const ReferenceSearch_1 = __importDefault(__nccwpck_require__(9664));
+const findAreaLabelsOnIssues_1 = __importDefault(__nccwpck_require__(3105));
+async function addLabelsToLinkedPulls(client, payload, owner, repo) {
+    if (!client.config.add_labels_to_linked_pulls)
+        return;
+    const areaLabelsConfig = client.config.area_labels;
+    if (!areaLabelsConfig) {
+        throw new Error("area_labels config not found.");
+    }
+    const allowedAreaLabels = Object.keys(areaLabelsConfig);
+    // Find all the linked issues to the PR and its commits
+    const references = new ReferenceSearch_1.default(client.octokit, payload.pull_request, owner, repo);
+    const bodyRefs = await references.getBody();
+    const commitRefs = await references.getCommits();
+    if (bodyRefs.length || commitRefs.length) {
+        const refs = commitRefs.concat(bodyRefs);
+        // sort and remove duplicate references
+        const linkedIssues = utils.deduplicate(refs);
+        const areaLabelsOnLinkedIssues = await findAreaLabelsOnIssues_1.default(client, allowedAreaLabels, linkedIssues, owner, repo);
+        const pullLabels = payload.pull_request.labels.map((label) => label.name);
+        const pullLabelsSorted = utils.deduplicate(pullLabels);
+        const pullNonAreaLabels = pullLabels.filter((label) => !allowedAreaLabels.includes(label));
+        const newLabels = pullNonAreaLabels.concat(areaLabelsOnLinkedIssues);
+        const newLabelsSorted = utils.deduplicate(newLabels);
+        if (newLabelsSorted.toString() === pullLabelsSorted.toString())
+            return;
+        await client.octokit.issues.setLabels({
+            owner,
+            repo,
+            issue_number: payload.number,
+            labels: newLabels,
+        });
+    }
+}
+exports.default = addLabelsToLinkedPulls;
+
+
+/***/ }),
+
 /***/ 7981:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -40,7 +108,6 @@ const run = async (client, payload, owner, repo) => {
     const allowedAreaLabels = client.config.area_labels;
     if (!allowedAreaLabels || typeof allowedAreaLabels !== "object") {
         core_1.setFailed("Unable to read 'area_labels' config as an object.");
-        console.log("hello");
         return;
     }
     if (label && !(label.name in allowedAreaLabels))
@@ -54,6 +121,60 @@ const run = async (client, payload, owner, repo) => {
     await updateTeams_1.default(client, number, uniqueTeams, owner, repo);
 };
 exports.run = run;
+
+
+/***/ }),
+
+/***/ 3105:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const utils = __importStar(__nccwpck_require__(918));
+async function findAreaLabelsOnIssues(client, allowedAreaLabels, linkedIssues, owner, repo) {
+    let areaLabelsOnIssues = [];
+    for (const number of linkedIssues) {
+        const { data } = await client.octokit.issues.get({
+            owner,
+            repo,
+            issue_number: number,
+        });
+        if (data.pull_request)
+            continue;
+        const issueLabels = data.labels
+            .map((label) => {
+            if (typeof label === "string" || !label.name)
+                return "";
+            else
+                return label.name;
+        })
+            .filter((label) => label);
+        const issueAreaLabels = issueLabels.filter((label) => allowedAreaLabels.includes(label));
+        areaLabelsOnIssues.push(...issueAreaLabels);
+    }
+    return utils.deduplicate(areaLabelsOnIssues);
+}
+exports.default = findAreaLabelsOnIssues;
 
 
 /***/ }),
@@ -158,6 +279,7 @@ const core_1 = __nccwpck_require__(2186);
 const github_1 = __nccwpck_require__(5438);
 const octokit_1 = __nccwpck_require__(2263);
 const getUserConfig_1 = __importDefault(__nccwpck_require__(4012));
+const addLabelsToLinkedPulls_1 = __importDefault(__nccwpck_require__(6886));
 const areas = __importStar(__nccwpck_require__(7981));
 const run = async () => {
     try {
@@ -172,13 +294,20 @@ const run = async () => {
             username: username,
             config: config,
         };
-        if (github_1.context.eventName !== "issues" &&
-            github_1.context.eventName !== "pull_request_target")
-            return;
-        const payload = github_1.context.payload;
         console.log(client.config);
-        if (payload.action === "labeled" || payload.action === "unlabeled") {
-            await areas.run(client, payload, owner, repo);
+        if (["issues", "pull_request_target"].includes(github_1.context.eventName)) {
+            const payload = github_1.context.payload;
+            if (payload.action === "labeled" || payload.action === "unlabeled") {
+                await areas.run(client, payload, owner, repo);
+            }
+        }
+        if (github_1.context.eventName === "pull_request_target") {
+            const payload = github_1.context.payload;
+            if (payload.action === "opened" ||
+                payload.action === "edited" ||
+                payload.action === "synchronize") {
+                await addLabelsToLinkedPulls_1.default(client, payload, owner, repo);
+            }
         }
     }
     catch (error) {
@@ -287,6 +416,102 @@ const getOctokitLogin = async (octokit) => {
     return login;
 };
 exports.getOctokitLogin = getOctokitLogin;
+
+
+/***/ }),
+
+/***/ 9664:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+/* eslint-disable array-element-newline */
+const keywords = [
+    "close",
+    "closes",
+    "closed",
+    "fix",
+    "fixes",
+    "fixed",
+    "resolve",
+    "resolves",
+    "resolved",
+];
+/* eslint-enable array-element-newline */
+class ReferenceSearch {
+    constructor(octokit, pull, owner, repo) {
+        this.octokit = octokit;
+        this.number = pull.number;
+        this.body = pull.body;
+        this.repoName = repo;
+        this.repoOwner = owner;
+    }
+    /**
+     * Finds all open referenced issues from a given string
+     * by identifying keywords specified above.
+     *
+     * Keywords are sourced from
+     * https://help.github.com/articles/closing-issues-using-keywords/
+     *
+     * Issues referenced in PR description are closed when the pull request
+     * is merged, and issues referenced in commit message are closed when
+     * the commit is merged into the default branch, irrespective of whether
+     * the pull request containing the commit is merged or not.
+     *
+     * @param {Array} strings Strings to find issue references in.
+     * @return {Array} Sorted array of all referenced issue numbers.
+     */
+    async find(strings) {
+        let matches = [];
+        strings.forEach((string) => {
+            const wordMatches = keywords.map((tense) => {
+                const regex = new RegExp(`${tense}:? +#([0-9]+)`, "i");
+                const match = string.match(regex);
+                return match ? match[1] : match;
+            });
+            matches = matches.concat(wordMatches);
+        });
+        // Check matches for valid issue references
+        const statusCheck = matches.map(async (match) => {
+            if (!match)
+                return false;
+            const number = parseInt(match);
+            const issue = await this.octokit.issues.get({
+                owner: this.repoOwner,
+                repo: this.repoName,
+                issue_number: number,
+            });
+            // Valid references are open issues
+            const valid = !issue.data.pull_request && issue.data.state === "open";
+            return valid ? number : false;
+        });
+        // statusCheck is an array of promises, so use Promise.all
+        const matchStatuses = await Promise.all(statusCheck);
+        // Filter out to issue_numbers only
+        const references = matchStatuses.filter((x) => typeof x === "number");
+        console.log("Referenced issues: ", references);
+        return references;
+    }
+    async getBody() {
+        if (!this.body)
+            return [];
+        const bodyRefs = await this.find([this.body]);
+        return bodyRefs;
+    }
+    async getCommits() {
+        const commits = await this.octokit.pulls.listCommits({
+            owner: this.repoOwner,
+            repo: this.repoName,
+            pull_number: this.number,
+        });
+        const commitMsgs = commits.data.map((c) => c.commit.message);
+        console.log("Commit messages:", commitMsgs);
+        const commitRefs = await this.find(commitMsgs);
+        return commitRefs;
+    }
+}
+exports.default = ReferenceSearch;
 
 
 /***/ }),
