@@ -1,4 +1,9 @@
-# Example config for area-labels action.
+# Sample config for area-labels action.
+
+# All the features are disabled by default. So, you need to
+# mention all the features/configs you wish to use, in your
+# configuration file and skip the features/config you do not
+# wish to use.
 
 # A dictionary matching area labels (specified as keys) to
 # team slugs (specified as values).
