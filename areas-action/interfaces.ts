@@ -2,5 +2,5 @@ export interface AreasActionUserConfigInterface {
   area_labels?: {
     [key: string]: string;
   };
-  add_labels_to_linked_pulls?: boolean;
+  copy_area_labels_to_pulls?: boolean;
 }

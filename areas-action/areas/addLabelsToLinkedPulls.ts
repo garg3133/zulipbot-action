@@ -18,7 +18,7 @@ export default async function addLabelsToLinkedPulls(
   owner: string,
   repo: string
 ): Promise<void> {
-  if (!client.config.add_labels_to_linked_pulls) return;
+  if (!client.config.copy_area_labels_to_pulls) return;
 
   const areaLabelsConfig = client.config.area_labels;
   if (!areaLabelsConfig) {

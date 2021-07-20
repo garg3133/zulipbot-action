@@ -1,13 +1,20 @@
 # Example config for area-labels action.
 
-# A dictionary matching labels (specified as keys) to
+# A dictionary matching area labels (specified as keys) to
 # team slugs (specified as values).
 area_labels:
   "area: api": "server-api"
   "area: authentication": "server-authentication"
   "area: bots": "server-bots"
 
-# Whether or not to notify the teams when a new pull
-# request is opened and linked to an area-labeled
-# issue.
-add_labels_to_linked_pulls: true
+# Whether or not to automatically copy the area labels
+# from an issue to the PRs linked to that issue (and thus,
+# notify the respective area teams of that PR).
+#
+# Note: This only works if the PR is linked to an issue
+# using the keywords (linked below) in the PR description
+# or commit messages. It currently does not consider the
+# issues linked manually due to the limitations of GitHub
+# API.
+# Keywords: https://help.github.com/articles/closing-issues-using-keywords/
+copy_area_labels_to_pulls: true
