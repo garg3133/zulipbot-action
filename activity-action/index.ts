@@ -34,18 +34,6 @@ const run = async () => {
     if (context.eventName === "schedule") {
       activity.run(client, owner, repo);
     }
-
-    // if (context.eventName === "issues" && client.config.issue_assigned_label) {
-    //   if (payload.action === "assigned" || payload.action === "unassigned") {
-    //     // Do something
-    //   }
-    // } else if (context.eventName === "schedule") {
-    //   activity.run(client, owner, repo);
-    // }
-
-    // if (payload.action === "labeled" || payload.action === "unlabeled") {
-    //   areaLabel.run(client, payload);
-    // }
   } catch (error) {
     setFailed(error.message);
   }
