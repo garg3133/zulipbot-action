@@ -1,6 +1,6 @@
-# areas-action
+# activity-action
 
-_activity-action_ keeps a track on all the open issues and pull requests in a repository.
+_activity-action_ keeps a track on all the open issues and pull requests in your repository.
 
 If any issue is found to be inactive for more than a specific number of days (neither the issue nor the PRs linked to the issue have been updated for more than the specified days), it posts a reminder to the contributor assigned to that issue (by commenting on the issue), and automatically unassigns the contributor from the issue if no progress is made for a specific number of days even after the reminder.
 
@@ -39,11 +39,11 @@ The final step in setting up the _activity-action_ in your repository is to add 
 name: Activity Action
 
 on:
-	# Run the action every 12 hours.
-	# More detauls about the schedule event and cron here:
-	# https://docs.github.com/en/actions/reference/events-that-trigger-workflows#schedule
+  # Run the action every 12 hours.
+  # More detauls about the schedule event and cron here:
+  # https://docs.github.com/en/actions/reference/events-that-trigger-workflows#schedule
   schedule:
-    - cron: '0 0/12 * * *'
+    - cron: "0 0/12 * * *"
 
 jobs:
   activity-action:
@@ -55,7 +55,7 @@ jobs:
           token: ${{ secrets.BOT_ACCESS_TOKEN }}
           # Relative path to the directory containing custom templates.
           templates-dir-path: .github/zulipbot-config/templates
-					# Label to prevent an issue from being checked by
+          # Label to prevent an issue from being checked by
           # activity-action, resulting in no warnings or unassignment
           # on that issue.
           skip_issue_with_label: "keep assigned"
