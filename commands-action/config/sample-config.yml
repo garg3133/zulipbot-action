@@ -1,7 +1,7 @@
 # Sample config for `commands-action`.
 
 # All the features are disabled by default. So, you need to
-# mention all the features/configs you wish to use in your
+# mention all the features/configs you wish to use, in your
 # configuration file and skip the features/config you do not
 # wish to use.
 
