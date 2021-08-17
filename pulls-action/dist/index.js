@@ -2,6 +2,121 @@ module.exports =
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 931:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const core_1 = __nccwpck_require__(2186);
+const Template_1 = __importDefault(__nccwpck_require__(5275));
+const fs = __importStar(__nccwpck_require__(5747));
+async function getTemplates(octokit, owner, repo) {
+    const templatesMap = new Map();
+    const defaultTemplates = fs.readdirSync(`${__dirname}/../templates`);
+    const userTemplates = await getUserTemplates(octokit, owner, repo);
+    for (const file of defaultTemplates) {
+        let content;
+        if (userTemplates.includes(file)) {
+            content = await getUserTemplate(octokit, owner, repo, file);
+        }
+        else {
+            content = fs.readFileSync(`${__dirname}/../templates/${file}`, "utf8");
+        }
+        const [name] = file.split(".md");
+        const template = new Template_1.default(octokit, name, content);
+        templatesMap.set(name, template);
+    }
+    return templatesMap;
+}
+exports.default = getTemplates;
+const getUserTemplates = async (octokit, owner, repo) => {
+    const templatesDirPath = core_1.getInput("templates-dir-path");
+    if (!templatesDirPath)
+        return [];
+    let userTemplatesNameArray;
+    try {
+        const { data } = await octokit.repos.getContent({
+            owner,
+            repo,
+            path: templatesDirPath,
+        });
+        if (Array.isArray(data)) {
+            userTemplatesNameArray = data
+                .filter((template) => template.type === "file")
+                .map((template) => template.name);
+        }
+    }
+    catch (error) {
+        if (error.status === 404) {
+            throw new Error("Templates directory not found. Please check the path in your workflow file.");
+        }
+        else {
+            throw new Error(`Received unexpected API status code while requesting templates dir: ${error.status}`);
+        }
+    }
+    if (userTemplatesNameArray === undefined) {
+        // If templatesDirPath is not a path to a directory
+        // => `data` will be an object and not an array
+        // => userTemplatesNameArray will be undefined.
+        throw new Error("Please provide correct templates directory path in your workflow file.");
+    }
+    return userTemplatesNameArray;
+};
+const getUserTemplate = async (octokit, owner, repo, templateName) => {
+    const templatesDirPath = core_1.getInput("templates-dir-path");
+    const templateFilePath = templatesDirPath + "/" + templateName;
+    let templateDataEncoded;
+    try {
+        const { data } = await octokit.repos.getContent({
+            owner,
+            repo,
+            path: templateFilePath,
+        });
+        if ("content" in data) {
+            templateDataEncoded = data.content;
+        }
+    }
+    catch (error) {
+        if (error.status === 404) {
+            throw new Error(`Template file ${templateName} not found.`);
+        }
+        else {
+            throw new Error(`Received unexpected API status code while requesting ${templateName} template: ${error.status}`);
+        }
+    }
+    if (!templateDataEncoded) {
+        throw new Error(`Unable to read the contents of the template ${templateName}.`);
+    }
+    const templateData = Buffer.from(templateDataEncoded, "base64").toString("utf-8");
+    return templateData;
+};
+
+
+/***/ }),
+
 /***/ 4012:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
@@ -134,20 +249,31 @@ const core_1 = __nccwpck_require__(2186);
 const github_1 = __nccwpck_require__(5438);
 const octokit_1 = __nccwpck_require__(2263);
 const getUserConfig_1 = __importDefault(__nccwpck_require__(4012));
+const getTemplates_1 = __importDefault(__nccwpck_require__(931));
 const pulls = __importStar(__nccwpck_require__(9342));
+const mergeConflicts = __importStar(__nccwpck_require__(5706));
 const workflow_run = __importStar(__nccwpck_require__(3192));
 const run = async () => {
     try {
         const { owner, repo } = github_1.context.issue;
+        // Create PullsActionClient object
         const octokit = octokit_1.getOctokit();
-        const config = await getUserConfig_1.default(octokit, owner, repo);
+        const [config, templates] = await Promise.all([
+            getUserConfig_1.default(octokit, owner, repo),
+            getTemplates_1.default(octokit, owner, repo),
+        ]);
         const client = {
             octokit,
             config,
+            templates,
         };
         if (github_1.context.eventName === "pull_request") {
             const payload = github_1.context.payload;
             pulls.run(client, payload, owner, repo);
+        }
+        else if (github_1.context.eventName === "push") {
+            const payload = github_1.context.payload;
+            mergeConflicts.run(client, payload, owner, repo);
         }
         else if (github_1.context.eventName === "workflow_run") {
             const payload = github_1.context.payload;
@@ -204,6 +330,83 @@ async function getNewSizeLabel(client, number, sizeLabels, owner, repo) {
     return newSizeLabel;
 }
 exports.default = getNewSizeLabel;
+
+
+/***/ }),
+
+/***/ 5706:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.run = void 0;
+const utils_1 = __nccwpck_require__(918);
+const run = async (client, payload, owner, repo) => {
+    const mergeConflictsConfig = client.config.merge_conflicts;
+    if (!mergeConflictsConfig) {
+        throw new Error("Please provide merge conflicts config or remove push event from your workflow file.");
+    }
+    const mergeConflictLabel = mergeConflictsConfig.label;
+    if (!mergeConflictLabel) {
+        throw new Error("Please provide label to be used to mark PRs for merge conflicts.");
+    }
+    const mergeConflictCommentConfig = mergeConflictsConfig.comment;
+    const pushRef = payload.ref.split("/");
+    const branch = pushRef[pushRef.length - 1];
+    const [api, method] = ["pulls", "list"];
+    const parameters = {
+        owner,
+        repo,
+        base: branch,
+    };
+    const pulls = await utils_1.getAllPages(client.octokit, api, method, parameters);
+    for (const pull of pulls) {
+        const number = pull.number;
+        const mergable = pull.mergeable;
+        const author = pull.user.login;
+        const pullLabels = pull.labels.map((label) => label.name);
+        if (pullLabels.includes(mergeConflictLabel)) {
+            // Remove the merge conflict label if the PR is mergable now.
+            if (mergable === true) {
+                client.octokit.issues.removeLabel({
+                    owner,
+                    repo,
+                    issue_number: number,
+                    name: mergeConflictLabel,
+                });
+            }
+            continue;
+        }
+        if (mergable === false) {
+            client.octokit.issues.addLabels({
+                owner,
+                repo,
+                issue_number: number,
+                labels: [mergeConflictLabel],
+            });
+            if (mergeConflictCommentConfig) {
+                const mergeConflictWarningTemplate = client.templates.get("mergeConflictWarning");
+                if (!mergeConflictWarningTemplate) {
+                    throw new Error("Merge conflict warning template not found.");
+                }
+                const warning = mergeConflictWarningTemplate.format({
+                    author,
+                    branch,
+                    owner,
+                    repo,
+                });
+                client.octokit.issues.createComment({
+                    owner,
+                    repo,
+                    issue_number: number,
+                    body: warning,
+                });
+            }
+        }
+    }
+};
+exports.run = run;
 
 
 /***/ }),
@@ -419,6 +622,57 @@ const run = async (client, payload, owner, repo) => {
     }
 };
 exports.run = run;
+
+
+/***/ }),
+
+/***/ 5275:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const octokit_1 = __nccwpck_require__(2263);
+const utils_1 = __nccwpck_require__(918);
+class Template {
+    constructor(octokit, name, content) {
+        this.octokit = octokit;
+        this.name = name;
+        this.content = content;
+    }
+    /**
+     * Finds comments generated from templates on a issue/pull request.
+     *
+     * @param {Object} parameters Parameters to be passed to issues.listComments.
+     * @return {Array} Array of filtered template comments from the octokit user.
+     */
+    async getComments(parameters) {
+        const [api, method] = ["issues", "listComments"];
+        const clientUsername = await octokit_1.getOctokitLogin(this.octokit);
+        const comments = await utils_1.getAllPages(this.octokit, api, method, parameters);
+        const templateComments = comments.filter((comment) => {
+            // Use end of template comments to check if comment is from template
+            const matched = comment.body.endsWith(`<!-- ${this.name} -->`);
+            const fromClient = comment.user.login === clientUsername;
+            return matched && fromClient;
+        });
+        return templateComments;
+    }
+    /**
+     * Formats template content with values from a given context.
+     *
+     * @param {Object} context Context with names/values of variables to format
+     * @return {String} Formatted template content.
+     */
+    format(context) {
+        let content = this.content;
+        for (const [expression, value] of Object.entries(context)) {
+            content = content.replace(new RegExp(`{${expression}}`, "g"), value.toString());
+        }
+        return content;
+    }
+}
+exports.default = Template;
 
 
 /***/ }),

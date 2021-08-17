@@ -5,6 +5,10 @@ export interface PullsActionUserConfigInterface {
     };
     exclude?: string[];
   };
+  merge_conflicts?: {
+    label?: string;
+    comment?: boolean;
+  };
 }
 
 export interface ArtifactInterface {

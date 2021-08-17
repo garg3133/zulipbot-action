@@ -1,6 +1,6 @@
 name: "Pulls Action"
 description: "An action to handle all pull requests related activities like merge conflicts, size labels, etc."
-author: 'garg3133'
+author: "garg3133"
 inputs:
   token:
     description: "Personal access token of the Github account to be used as the bot."
@@ -12,5 +12,5 @@ inputs:
     description: "Relative path to the directory containing the templates w.r.t the root of your repository."
     required: false
 runs:
-  using: 'node12'
-  main: 'dist/index.js'
+  using: "node12"
+  main: "dist/index.js"

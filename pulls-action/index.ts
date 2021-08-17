@@ -5,11 +5,16 @@ import getUserConfig from "../client/getUserConfig";
 import getTemplates from "../client/getTemplates";
 import Template from "../structures/Template";
 import * as pulls from "./pulls/pulls";
+import * as mergeConflicts from "./pulls/mergeConflicts";
 import * as workflow_run from "./workflow_run/workflow_run";
 
 import { OctokitClient } from "../client/octokit";
 import { PullsActionUserConfigInterface } from "./interfaces";
-import { PullRequestEvent, WorkflowRunEvent } from "@octokit/webhooks-types";
+import {
+  PullRequestEvent,
+  PushEvent,
+  WorkflowRunEvent,
+} from "@octokit/webhooks-types";
 
 export type PullsActionClient = {
   octokit: OctokitClient;
@@ -42,6 +47,10 @@ const run = async (): Promise<void> => {
       const payload = context.payload as PullRequestEvent;
 
       pulls.run(client, payload, owner, repo);
+    } else if (context.eventName === "push") {
+      const payload = context.payload as PushEvent;
+
+      mergeConflicts.run(client, payload, owner, repo);
     } else if (context.eventName === "workflow_run") {
       const payload = context.payload as WorkflowRunEvent;
       if (payload.workflow_run.conclusion !== "success") {
