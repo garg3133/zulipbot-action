@@ -2,6 +2,8 @@ import { setFailed } from "@actions/core";
 import { context } from "@actions/github";
 import { getOctokit } from "../client/octokit";
 import getUserConfig from "../client/getUserConfig";
+import getTemplates from "../client/getTemplates";
+import Template from "../structures/Template";
 import * as pulls from "./pulls/pulls";
 import * as workflow_run from "./workflow_run/workflow_run";
 
@@ -12,19 +14,28 @@ import { PullRequestEvent, WorkflowRunEvent } from "@octokit/webhooks-types";
 export type PullsActionClient = {
   octokit: OctokitClient;
   config: PullsActionUserConfigInterface;
+  templates: Map<string, Template>;
 };
 
 const run = async (): Promise<void> => {
   try {
     const { owner, repo } = context.issue;
 
+    // Create PullsActionClient object
     const octokit: OctokitClient = getOctokit();
 
-    const config = await getUserConfig(octokit, owner, repo);
+    const [config, templates]: [
+      PullsActionUserConfigInterface,
+      Map<string, Template>
+    ] = await Promise.all([
+      getUserConfig(octokit, owner, repo),
+      getTemplates(octokit, owner, repo),
+    ]);
 
     const client: PullsActionClient = {
       octokit,
       config,
+      templates,
     };
 
     if (context.eventName === "pull_request") {
